@@ -1402,6 +1402,7 @@ _signal_batch_job(struct job_record *job_ptr, uint16_t signal)
 	kill_tasks_msg->signal      = signal;
 
 	agent_args->msg_args = kill_tasks_msg;
+	agent_args->node_count = 1; /* slurm/477 be sure to update node_count */
 	agent_queue_request(agent_args);
 	return;
 }
@@ -2924,11 +2925,13 @@ int update_job(job_desc_msg_t * job_specs, uid_t uid)
 	if (job_specs->features && detail_ptr) {
 		if (super_user) {
 			xfree(detail_ptr->features);
-			detail_ptr->features = job_specs->features;
-			info("update_job: setting features to %s for "
-				"job_id %u", job_specs->features, 
-				job_specs->job_id);
-			job_specs->features = NULL;
+			if (job_specs->features[0] != '\0') {
+				detail_ptr->features = job_specs->features;
+				job_specs->features = NULL;
+				info("update_job: setting features to %s for "
+					"job_id %u", job_specs->features, 
+					job_specs->job_id);
+			}
 		} else {
 			error("Attempt to change features for job %u",
 				job_specs->job_id);
@@ -2953,7 +2956,6 @@ int update_job(job_desc_msg_t * job_specs, uid_t uid)
 			info("update_job: setting partition to %s for "
 				"job_id %u", job_specs->partition, 
 				job_specs->job_id);
-			job_specs->partition = NULL;
 		} else {
 			error("Attempt to change partition for job %u",
 				job_specs->job_id);
@@ -2962,7 +2964,10 @@ int update_job(job_desc_msg_t * job_specs, uid_t uid)
 	}
 
 	if (job_specs->req_nodes && detail_ptr) {
-		if (super_user) {
+		if (job_specs->req_nodes[0] == '\0') {
+			xfree(detail_ptr->req_nodes);
+			FREE_NULL_BITMAP(detail_ptr->req_node_bitmap);
+		} else if (super_user) {
 			if (node_name2bitmap(job_specs->req_nodes, false, 
 						&req_bitmap)) {
 				error("Invalid node list for job_update: %s",
