@@ -31,6 +31,7 @@
 
 #include <fcntl.h>
 #include <string.h>
+#include <stdlib.h>
 #include <pthread.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -140,6 +141,10 @@ main (int argc, char *argv[])
 
 	log_init(argv[0], conf->log_opts, LOG_DAEMON, conf->logfile);
 
+	xsignal(SIGTERM, &_term_handler);
+	xsignal(SIGINT,  &_term_handler);
+	xsignal(SIGHUP,  &_hup_handler );
+
 	/* 
 	 * Run slurmd_init() here in order to report early errors
 	 * (with shared memory and public keyfile)
@@ -163,6 +168,12 @@ main (int argc, char *argv[])
 
 	_kill_old_slurmd();
 
+	/* 
+	 * Restore any saved revoked credential information
+	 */
+	if (_restore_cred_state(conf->vctx))
+		return SLURM_FAILURE;
+	
 	if (interconnect_node_init() < 0)
 		fatal("Unable to initialize interconnect.");
 
@@ -175,10 +186,6 @@ main (int argc, char *argv[])
 
         if (send_registration_msg(SLURM_SUCCESS) < 0) 
 		error("Unable to register with slurm controller");
-
-	xsignal(SIGTERM, &_term_handler);
-	xsignal(SIGINT,  &_term_handler);
-	xsignal(SIGHUP,  &_hup_handler );
 
 	_install_fork_handlers();
 	list_install_fork_handlers();
@@ -203,34 +210,32 @@ main (int argc, char *argv[])
 	return 0;
 }
 
+
 static void
 _msg_engine()
 {
 	slurm_fd sock;
-	slurm_addr cli;
 
-	while (1) {
-		if (_shutdown)
-			break;
-  again:
-		if ((sock = slurm_accept_msg_conn(conf->lfd, &cli)) < 0) {
-			if (errno == EINTR) {
-				if (_shutdown) {
-					verbose("got shutdown request");
-					break;
-				}
-				if (_reconfig) {
-					_reconfigure();
-					verbose("got reconfigure request");
-				}
-				goto again;
-			}
-			error("accept: %m");
+	while (!_shutdown) {
+		slurm_addr *cli = xmalloc (sizeof (*cli));
+		if ((sock = slurm_accept_msg_conn(conf->lfd, cli)) >= 0) {
+			_handle_connection(sock, cli);
 			continue;
 		}
-		if (sock > 0)
-			_handle_connection(sock, &cli);
+		/*
+		 *  Otherwise, accept() failed.
+		 */
+		xfree (cli);
+		if (errno == EINTR) {
+			if (_reconfig) {
+				verbose("got reconfigure request");
+				_reconfigure();
+			}
+			continue;
+		} 
+		error("accept: %m");
 	}
+	verbose("got shutdown request");
 	slurm_shutdown_msg_engine(conf->lfd);
 	return;
 }
@@ -336,6 +341,7 @@ _service_connection(void *arg)
 		error ("close(%d): %m", con->fd);
 
     done:
+	xfree(con->cli_addr);
 	xfree(con);
 	slurm_free_msg(msg);
 	_decrement_thd_count();
@@ -345,20 +351,23 @@ _service_connection(void *arg)
 int
 send_registration_msg(uint32_t status)
 {
+	int retval = SLURM_SUCCESS;
 	slurm_msg_t req;
 	slurm_msg_t resp;
-	slurm_node_registration_status_msg_t msg;
+	slurm_node_registration_status_msg_t *msg = xmalloc (sizeof (*msg));
 
-	_fill_registration_msg(&msg);
-	msg.status   = status;
+	_fill_registration_msg(msg);
+	msg->status  = status;
 
 	req.msg_type = MESSAGE_NODE_REGISTRATION_STATUS;
-	req.data     = &msg;
+	req.data     = msg;
 
 	if (slurm_send_recv_controller_msg(&req, &resp) < 0) {
 		error("Unable to register: %m");
-		return SLURM_FAILURE;
+		retval = SLURM_FAILURE;
 	}
+
+	slurm_free_node_registration_status_msg (msg);
 
 	/* XXX look at response msg
 	 */
@@ -374,7 +383,7 @@ _fill_registration_msg(slurm_node_registration_status_msg_t *msg)
 	job_step_t  *s;
 	int          n;
 
-	msg->node_name = conf->hostname;
+	msg->node_name = xstrdup (conf->hostname);
 
 	get_procs(&msg->cpus);
 	get_memory(&msg->real_memory_size);
@@ -642,10 +651,12 @@ _slurmd_init()
 		return SLURM_FAILURE;
 
 	/* 
-	 * Restore any saved revoked credential information
+	 * Create slurmd spool directory if necessary.
 	 */
-	if (_restore_cred_state(conf->vctx))
+	if (_set_slurmd_spooldir() < 0) {
+		error("Unable to initialize slurmd spooldir");
 		return SLURM_FAILURE;
+	}
 
 	/*
 	 * Cleanup shared memory if so configured
@@ -662,17 +673,13 @@ _slurmd_init()
 
 	/*
 	 * Initialize slurmd shared memory
+	 *  This *must* be called after _set_slurmd_spooldir()
+	 *  since the default location of the slurmd lockfile is
+	 *  _in_ the spooldir.
+	 *
 	 */
 	if (shm_init(true) < 0)
 		return SLURM_FAILURE;
-
-	/* 
-	 * Create slurmd spool directory if necessary.
-	 */
-	if (_set_slurmd_spooldir() < 0) {
-		error("Unable to initialize slurmd spooldir");
-		return SLURM_FAILURE;
-	}
 
 	if (conf->daemonize && (chdir("/tmp") < 0)) {
 		error("Unable to chdir to /tmp");
@@ -691,8 +698,8 @@ _restore_cred_state(slurm_cred_ctx_t ctx)
 	int cred_fd, data_allocated, data_read = 0;
 	Buf buffer = NULL;
 
-	if ((mkdir(conf->spooldir, 0755) < 0) && 
-	    (errno != EEXIST)) {
+	if ( (mkdir(conf->spooldir, 0755) < 0) 
+	   && (errno != EEXIST) ) {
 		error("mkdir(%s): %m", conf->spooldir);
 		return SLURM_ERROR;
 	}
@@ -727,7 +734,7 @@ static int
 _slurmd_fini()
 {
 	save_cred_state(conf->vctx);
-	shm_fini();
+	shm_fini(); 
 	return SLURM_SUCCESS;
 }
 

@@ -123,8 +123,12 @@ existing_allocation(void)
 	job.uid = getuid();
 
 	if (slurm_confirm_allocation(&job, &resp) < 0) {
-		error("Unable to confirm resource allocation for job %u: %m",
-		      job.job_id);
+		if (errno == ESLURM_ALREADY_DONE)
+			error ("SLURM job %u has expired. Check for allocation or job "
+			       "that has exceeded timelimit.", job.job_id);
+		else
+			error("Unable to confirm resource allocation for job %u: %m",
+			      job.job_id);
 		exit(1);
 	}
 
@@ -302,10 +306,10 @@ create_job_step(job_t *job)
 	job_step_create_response_msg_t *resp = NULL;
 
 	if (!(req = _step_req_create(job))) 
-		job_fatal (job, "Unable to allocate step request message");
+		fatal ("Unable to allocate step request message");
 
 	if ((slurm_job_step_create(req, &resp) < 0) || (resp == NULL)) 
-		job_fatal (job, "Unable to create job step: %m");
+		fatal ("Unable to create job step: %m");
 
 	job->stepid  = resp->job_step_id;
 	job->cred    = resp->cred;

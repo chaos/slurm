@@ -403,6 +403,8 @@ static void _opt_default()
 	opt.join	= false;
 	opt.max_wait	= slurm_get_wait_time();
 
+	opt.quit_on_intr = false;
+
 	_verbose = 0;
 	opt.slurmd_debug = LOG_LEVEL_QUIET;
 
@@ -418,7 +420,7 @@ static void _opt_default()
 	opt.exc_nodes	    = NULL;
 	opt.max_launch_time = 60; /* 60 seconds to launch job             */
 	opt.max_exit_timeout= 60; /* Warn user 60 seconds after task exit */
-	opt.msg_timeout     = 2;  /* Default launch msg timeout           */
+	opt.msg_timeout     = 5;  /* Default launch msg timeout           */
 
 	mode	= MODE_NORMAL;
 
@@ -618,6 +620,7 @@ static void _opt_args(int argc, char **argv)
 		{"wait",          required_argument, 0, 'W'},
 		{"exclude",       required_argument, 0, 'x'},
 		{"no-allocate",   no_argument,       0, 'Z'},
+		{"quit-on-interrupt", no_argument,   0, 'q'},
 
 		{"contiguous",       no_argument,       0, LONG_OPT_CONT},
 		{"mincpus",          required_argument, 0, LONG_OPT_MINCPU},
@@ -631,7 +634,7 @@ static void _opt_args(int argc, char **argv)
 		{"usage",            no_argument,       0, LONG_OPT_USAGE}
 	};
 	char *opt_string = "+a:Abc:C:d:D:e:Hi:IjJ:klm:n:N:"
-		"o:Op:r:st:T:uvVw:W:x:Z";
+		"o:Op:r:st:T:uvVw:W:x:Zq";
 	char **rest = NULL;
 
 	opt.progname = xbasename(argv[0]);
@@ -791,6 +794,9 @@ static void _opt_args(int argc, char **argv)
 				break;
 			case (int)'Z':
 				opt.no_alloc = true;
+				break;
+			case (int)'q':
+				opt.quit_on_intr = true;
 				break;
 			case LONG_OPT_CONT:
 				opt.contiguous = true;
