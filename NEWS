@@ -1,9 +1,42 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins. 
 
+* Changes in SLURM 0.4.14
+========================
+ -- job state is kept on warm start of slurm
+
+* Changes in SLURM 0.4.13
+========================
+ -- epilog fix for bgl plugin
+
+* Changes in SLURM 0.4.12
+========================
+ -- bug shot for new api calls.
+ -- added BridgeAPILogFile as an option for bluegene.conf file
+ 
+* Changes in SLURM 0.4.11
+========================
+ -- changed as many rm_get_partition() to rm_get_partitions_info as we could 
+    for time saving.
+ 
+* Changes in SLURM 0.4.10
+========================
+ -- redesign for BGL external wiring.
+ -- smap display bug fix for smaller systems.
+
+* Changes in SLURM 0.4.9
+========================
+ -- setpnum works now, have to include this in bluegene.conf
+
+* Changes in SLURM 0.4.8
+========================
+ -- Changed the prolog and the epilog to use the env var MPIRUN_PARTITION
+    instead of BGL_PARTITION_ID
+
 * Changes in SLURM 0.4.7
 ========================
- -- Remove some BGL specific headers that IBM now distributes.
+ -- Remove some BGL specific headers that IBM now distributes, NOTE
+    BGL driver 080 or greater required.
  -- Change autogen.sh to deal with problems running autoconf on one
     system and configure on another with different software versions.
 
