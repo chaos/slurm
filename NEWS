@@ -1,6 +1,19 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins. 
 
+* Changes in SLURM 0.2.22
+=========================
+ -- Fixes for reported problems:
+   - slurm/326: Node stays in completing state indefinitely.
+   - slurm/328: slurmd uses different shared memory key on restart.
+   - slurm/329: Job step processes may be left running when one task dies.
+   - slurm/334: slurmd segv with multiple simultaneous job steps.
+ -- Allow more digits for priority values in scontrol.
+ -- Applied various fixes for memory leaks.
+ -- Remove logic preventing DPCS from allocating jobs with more than 
+    eight node segments. Fix for DPCS should now be in production.
+ -- Changed compact string for DRAINING state to "drng" from "drain."
+
 * Changes in SLURM 0.2.21
 =========================
  -- Fixes for reported problems:
@@ -9,6 +22,7 @@ documents those changes that are of interest to users and admins.
    - slurm/300: Possibly killing wrong job on slurmd restart
    - slurm/312: Freeing non-allocated memory and killing slurmd
  -- Assorted changes to support RedHat Enterprise Linux 3.0 and IA64
+ -- Initial Elan4 and libelanctrl support (--with-elan).
  -- Slurmctld was sometimes inappropriately setting a job's priority 
     to 1 when a node was down (even if up nodes could be used for the 
     job when a running job completes)
@@ -17,7 +31,8 @@ documents those changes that are of interest to users and admins.
     variable for `%J' expansion in TV bulk launch string.
  -- Fix several locking bugs in slurmd IO layer.
  -- Throttle back repetitious error messages in slurmd to avoid filling
-    slurm logfiles.
+    log files.
+ 
 
 * Changes in SLURM 0.2.20
 =========================
