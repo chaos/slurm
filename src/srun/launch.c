@@ -130,12 +130,9 @@ launch(void *arg)
 		r->slurmd_debug    = opt.slurmd_debug;
 		r->switch_job      = job->switch_job;
 
-		if (job->ofname->type == IO_PER_TASK)
-			r->ofname  = job->ofname->name;
-		if (job->efname->type == IO_PER_TASK)
-			r->efname  = job->efname->name;
-		if (job->ifname->type == IO_PER_TASK)
-			r->ifname  = job->ifname->name;
+		r->ofname  = fname_remote_string (job->ofname);
+		r->efname  = fname_remote_string (job->efname);
+		r->ifname  = fname_remote_string (job->ifname);
 
 		if (opt.parallel_debug)
 			r->task_flags |= TASK_PARALLEL_DEBUG;
@@ -222,8 +219,12 @@ static void _join_attached_threads (int nthreads, thd_t *th)
 {
 	int i;
 	void *retval;
-	for (i = 0; i < nthreads; i++)
-		pthread_join (th[i].thread, &retval);
+	if (!opt.parallel_debug)
+		return;
+	for (i = 0; i < nthreads; i++) {
+		if (th[i].thread != (pthread_t) NULL)
+			pthread_join (th[i].thread, &retval);
+	}
 	return;
 }
 
@@ -294,6 +295,7 @@ static void _p_launch(slurm_msg_t *req, job_t *job)
 		if (job->ntask[i] == 0)	{	/* No tasks for this node */
 			debug("Node %s is unused",job->host[i]);
 			job->host_state[i] = SRUN_HOST_REPLIED;
+			thd[i].thread = (pthread_t) NULL;
 			continue;
 		}
 

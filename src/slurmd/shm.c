@@ -484,7 +484,8 @@ shm_signal_step(uint32_t jobid, uint32_t stepid, uint32_t signal)
 			continue;
 		}
 
-		if (kill(t->pid, signo) < 0) {
+		if ((t->pid > (pid_t) 0)
+		&&  (kill(t->pid, signo) < 0)) {
 			error ("kill %u.%u task %d pid %ld: %m", 
 			       jobid, stepid, t->id, (long)t->pid);
 			retval = errno;
@@ -666,7 +667,8 @@ shm_update_step_addrs(uint32_t jobid, uint32_t stepid,
 
 			debug3("Going to send shm update signal to %ld", 
 				(long) s->mpid);
-			if ((s->mpid > 0) && (kill(s->mpid, SIGHUP) < 0)) {
+			if ((s->mpid > (pid_t) 0) 
+			&&  (kill(s->mpid, SIGHUP) < 0)) {
 				slurm_seterrno(EPERM);
 				retval = SLURM_FAILURE;
 			}
@@ -905,10 +907,17 @@ _shm_clear_stale_entries(void)
 	int count = 0;
 	for (i = 0; i < MAX_JOB_STEPS; i++) {
 		job_step_t *s = &slurmd_shm->step[i];
+		task_t     *t = s->task_list;
+
 		if (s->state == SLURMD_JOB_UNUSED) 
 			continue;
+
+		while (t->next && t->id != 0) 
+			t = t->next;
 		
-		if ((s->sid > (pid_t) 0) && (kill(-s->sid, 0) != 0)) {
+		if (  (s->sid > (pid_t) 0)
+		   && (kill(-s->sid, 0) != 0)
+		   && (kill(-t->pid, 0) != 0)) {
 			debug ("Clearing stale job %u.%u from shm",
 					s->jobid, s->stepid);
 			_shm_clear_step(s);
