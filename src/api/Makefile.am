@@ -43,19 +43,22 @@ libslurm_la_SOURCES =    \
 
 common_dir = $(top_builddir)/src/common
 
-libslurm_la_LIBADD         = $(common_dir)/libcommon.la -lpthread
+libslurm_la_LIBADD         = \
+	$(common_dir)/libcommon.la -lpthread
 
-libslurm_la_LDFLAGS        = -export-symbols libslurm.sym \
-		             -version-info $(current):$(rev):$(age)
+libslurm_la_LDFLAGS        = \
+	-export-symbols libslurm.sym           \
+	-version-info $(current):$(rev):$(age) 
 
-libslurm_la_DEPENDENCIES   = libslurm.sym $(common_dir)/libcommon.la
+libslurm_la_DEPENDENCIES   = \
+	libslurm.sym \
+	$(common_dir)/libcommon.la
 
-
-libslurm.sym : $(top_builddir)/slurm/slurm.h 
-	sed -n 's/^extern.* \(slurm[^ ]*\).*$$/\1/p' $< >libslurm.sym
+libslurm.sym : $(top_builddir)/slurm/slurm.h
+	-sed -n 's/^extern .* \([a-zA-Z0-9_]*\) PARAMS.*$$/\1/p' $< $* >libslurm.sym
 
 distclean-local: 
-	-rm libslurm.sym
+	-rm -rf libslurm.map libslurm.sym
 
 force:
 $(libslurm_la_LIBADD) : force

@@ -332,16 +332,21 @@ int dump_all_node_state ( void )
 		error ("Can't save state, error creating file %s %m", 
 		       new_file);
 		error_code = errno;
-	}
-	else {
-		if (write (log_fd, get_buf_data(buffer), 
-		           get_buf_offset(buffer)) != 
-					get_buf_offset(buffer)) {
-			error ("Can't save state, error writing file %s %m", 
-			       new_file);
-			error_code = errno;
+	} else {
+		int pos = 0, nwrite = get_buf_offset(buffer), amount;
+		char *data = (char *)get_buf_data(buffer);
+
+		while (nwrite > 0) {
+			amount = write(log_fd, &data[pos], nwrite);
+			if ((amount < 0) && (errno != EINTR)) {
+				error("Error writing file %s, %m", new_file);
+				error_code = errno;
+				break;
+			}
+			nwrite -= amount;
+			pos    += amount;
 		}
-		close (log_fd);
+		close(log_fd);
 	}
 	if (error_code) 
 		(void) unlink (new_file);
@@ -1153,7 +1158,7 @@ validate_node_specs (char *node_name, uint32_t cpus,
 #endif
 		if (node_ptr->node_state == NODE_STATE_UNKNOWN) {
 			reset_job_priority();
-			info ("validate_node_specs: node %s has registered", 
+			debug("validate_node_specs: node %s has registered", 
 				node_name);
 			if (job_count)
 				node_ptr->node_state = NODE_STATE_ALLOCATED;
@@ -1491,9 +1496,13 @@ void make_node_comp(struct node_record *node_ptr)
 		       node_ptr->name, 
 		       node_state_string((enum node_states)
 					 node_ptr->node_state));
-	} else {
+	} else if (!no_resp_flag) {
 		node_ptr->node_state = NODE_STATE_COMPLETING | no_resp_flag;
 		xfree(node_ptr->reason);
+	} else if ( (base_state == NODE_STATE_ALLOCATED) &&
+		    (node_ptr->run_job_cnt == 0) ) {
+		bit_set(idle_node_bitmap, inx);
+		node_ptr->node_state = NODE_STATE_IDLE | no_resp_flag;
 	}
 }
 

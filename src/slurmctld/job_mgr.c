@@ -122,7 +122,6 @@ static void _reset_step_bitmaps(struct job_record *job_ptr);
 static void _set_job_id(struct job_record *job_ptr);
 static void _set_job_prio(struct job_record *job_ptr);
 static bool _slurm_picks_nodes(job_desc_msg_t * job_specs);
-static bool _too_many_fragments(bitstr_t *req_bitmap);
 static bool _top_priority(struct job_record *job_ptr);
 static int  _validate_job_create_req(job_desc_msg_t * job_desc);
 static int  _validate_job_desc(job_desc_msg_t * job_desc_msg, int allocate,
@@ -1339,7 +1338,7 @@ job_complete(uint32_t job_id, uid_t uid, bool requeue,
  * IN allocate - resource allocation request if set rather than job submit
  * IN will_run - job is not to be created, test of validity only
  * OUT new_job_id - the job's ID
- * OUT job_rec_ptr - pointer to the job (NULL on error)
+ * OUT job_pptr - pointer to the job (NULL on error)
  * RET 0 on success, otherwise ESLURM error code
  * globals: job_list - pointer to global job list 
  *	list_part - global list of partition info
@@ -1349,13 +1348,13 @@ job_complete(uint32_t job_id, uid_t uid, bool requeue,
 
 static int _job_create(job_desc_msg_t * job_desc, uint32_t * new_job_id,
 		       int allocate, int will_run,
-		       struct job_record **job_rec_ptr, uid_t submit_uid)
+		       struct job_record **job_pptr, uid_t submit_uid)
 {
 	int error_code = SLURM_SUCCESS, i;
 	struct part_record *part_ptr;
 	bitstr_t *req_bitmap = NULL, *exc_bitmap = NULL;
 
-	*job_rec_ptr = (struct job_record *) NULL;
+	*job_pptr = (struct job_record *) NULL;
 	if ((error_code = _validate_job_desc(job_desc, allocate, submit_uid)))
 		return error_code;
 
@@ -1413,10 +1412,6 @@ static int _job_create(job_desc_msg_t * job_desc, uint32_t * new_job_id,
 			info("_job_create: requested nodes %s not in partition %s",
 			     job_desc->req_nodes, part_ptr->name);
 			error_code = ESLURM_REQUESTED_NODES_NOT_IN_PARTITION;
-			goto cleanup;
-		}
-		if (_too_many_fragments(req_bitmap)) {
-			error_code = ESLURM_TOO_MANY_REQUESTED_NODES;
 			goto cleanup;
 		}
 		i = count_cpus(req_bitmap);
@@ -1483,7 +1478,7 @@ static int _job_create(job_desc_msg_t * job_desc, uint32_t * new_job_id,
 	}
 
 	if ((error_code = _copy_job_desc_to_job_record(job_desc,
-						       job_rec_ptr,
+						       job_pptr,
 						       part_ptr,
 						       &req_bitmap,
 						       &exc_bitmap))) {
@@ -1493,16 +1488,16 @@ static int _job_create(job_desc_msg_t * job_desc, uint32_t * new_job_id,
 
 	if (job_desc->script) {
 		if ((error_code = _copy_job_desc_to_file(job_desc,
-							 (*job_rec_ptr)->
+							 (*job_pptr)->
 							 job_id))) {
-			(*job_rec_ptr)->job_state = JOB_FAILED;
+			(*job_pptr)->job_state = JOB_FAILED;
 			error_code = ESLURM_WRITING_TO_FILE;
 			goto cleanup;
 		}
-		(*job_rec_ptr)->batch_flag = 1;
+		(*job_pptr)->batch_flag = 1;
 	} else
-		(*job_rec_ptr)->batch_flag = 0;
-	*new_job_id = (*job_rec_ptr)->job_id;
+		(*job_pptr)->batch_flag = 0;
+	*new_job_id = (*job_pptr)->job_id;
 
 	/* Insure that requested partition is valid right now, 
 	 * otherwise leave job queued and provide warning code */
@@ -1522,6 +1517,8 @@ static int _job_create(job_desc_msg_t * job_desc, uint32_t * new_job_id,
 		     *new_job_id, part_ptr->name);
 		error_code = ESLURM_REQUESTED_PART_CONFIG_UNAVAILABLE;
 	}
+	if (error_code == ESLURM_REQUESTED_PART_CONFIG_UNAVAILABLE)
+		(*job_pptr)->priority = 1;	/* Move to end of queue */
 
       cleanup:
 	FREE_NULL_BITMAP(req_bitmap);
@@ -3196,20 +3193,3 @@ void job_fini (void)
 	xfree(job_hash_over);
 }
 
-static bool _too_many_fragments(bitstr_t *req_bitmap)
-{
-#ifdef MAX_NODE_FRAGMENTS
-	int i, frags=0;
-	int last_bit = 0, next_bit;
-
-	for (i = 0; i < node_record_count; i++) {
-		next_bit = bit_test(req_bitmap, i);
-		if (next_bit == last_bit)
-			continue;
-		last_bit = next_bit;
-		if (next_bit && (++frags > MAX_NODE_FRAGMENTS))
-			return true;
-	}
-#endif
-	return false;
-}
