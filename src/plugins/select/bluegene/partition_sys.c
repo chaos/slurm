@@ -89,8 +89,6 @@ static void _print_list(List list)
  */
 static void _pre_allocate(bgl_record_t *bgl_record)
 {
-	int psets = (PSETS_PER_BP * bgl_record->bp_count);
-
 	rm_set_data(bgl_record->bgl_part, RM_PartitionBlrtsImg,   
 		bluegene_blrts);
 	rm_set_data(bgl_record->bgl_part, RM_PartitionLinuxImg,   
@@ -103,7 +101,7 @@ static void _pre_allocate(bgl_record_t *bgl_record)
 		&bgl_record->conn_type);
 	rm_set_data(bgl_record->bgl_part, RM_PartitionMode, 
 		&bgl_record->node_use);
-	rm_set_data(bgl_record->bgl_part, RM_PartitionPsetNum, &psets); 
+	rm_set_data(bgl_record->bgl_part, RM_PartitionPsetsPerBP, &numpsets); 
 	rm_set_data(bgl_record->bgl_part, RM_PartitionUserName, USER_NAME);
 }
 
@@ -114,9 +112,10 @@ static int _post_allocate(bgl_record_t *bgl_record)
 {
 	int rc;
 	pm_partition_id_t part_id;
-	char command[255];
+	//char command[255];
 	/* Add partition record to the DB */
 	debug("adding partition\n");
+	
 	rc = rm_add_partition(bgl_record->bgl_part);
 	if (rc != STATUS_OK) {
 		error("Error adding partition");
@@ -127,12 +126,12 @@ static int _post_allocate(bgl_record_t *bgl_record)
 	/* Get back the new partition id */
 	rm_get_data(bgl_record->bgl_part, RM_PartitionID, &part_id);
 	bgl_record->bgl_part_id = xstrdup(part_id);
-	if (change_numpsets) {
-		memset(command,0,255);
-		sprintf(command,"%s %s", change_numpsets, part_id);
-		info("%s",command);
-		system(command);
-	}
+	/* if (change_numpsets) { */
+/* 		memset(command,0,255); */
+/* 		sprintf(command,"%s %s", change_numpsets, part_id); */
+/* 		info("%s",command); */
+/* 		system(command); */
+/* 	} */
 	/* We are done with the partition */
 	rm_free_partition(bgl_record->bgl_part);
 
@@ -160,6 +159,7 @@ static int _post_allocate(bgl_record_t *bgl_record)
 
 extern int configure_partition(bgl_record_t *bgl_record)
 {
+	
 	rm_new_partition(&bgl_record->bgl_part); /* new partition to be added */
 	_pre_allocate(bgl_record);
 	
@@ -186,8 +186,11 @@ int read_bgl_partitions()
 #ifndef USE_BGL_FILE
 	int *coord;
 	char *bp_id;
-	int part_number, lowest_part=300;
-	char part_name[7];
+	int part_number, part_count;
+	char *part_name;
+	rm_partition_list_t *part_list;
+	rm_partition_state_flag_t state = RM_PARTITION_ALL;
+	
 #endif
 
 	/* This code is here to blow add partitions after we get the 
@@ -199,9 +202,23 @@ int read_bgl_partitions()
 		error("rm_set_serial(): %d\n", rc);
 		return SLURM_ERROR;
 	}			
-	for(part_number=101; part_number<lowest_part; part_number++) {
-		memset(part_name,0,7);
-		sprintf(part_name, "RMP%d", part_number);
+	if ((rc = rm_get_partitions_info(state, &part_list))
+	    != STATUS_OK) {
+		error("rm_get_partitions(): %s",
+		      bgl_err_str(rc));
+		return SLURM_ERROR;
+		
+	}
+	
+	rm_get_data(part_list, RM_PartListSize, &part_count);
+	
+	rm_get_data(part_list, RM_PartListFirstPart, &part_ptr);
+	
+	for(part_number=0; part_number<part_count; part_number++) {
+		rm_get_data(part_ptr, RM_PartitionID, &part_name);
+		if(strncmp("RMP",part_name,3))
+			goto next_partition;
+		
 		//debug("Checking if Partition %s is free",part_name);
 		if ((rc = rm_get_partition(part_name, &part_ptr))
 		    != STATUS_OK) {
@@ -309,16 +326,22 @@ int read_bgl_partitions()
 				
 		bgl_record->part_lifecycle = STATIC;
 				
+	next_partition:
+		/* if ((rc = rm_free_partition(part_ptr)) != STATUS_OK) { */
+/* 		} */
+		rm_get_data(part_list, RM_PartListNextPart, &part_ptr);
 
-		if ((rm_rc = rm_free_partition(part_ptr))
-		    != STATUS_OK) {
-			error("rm_free_partition(): %s",
-			      bgl_err_str(rm_rc));
-		}
+		/* if ((rm_rc = rm_free_partition(part_ptr)) */
+/* 		    != STATUS_OK) { */
+/* 			error("rm_free_partition(): %s", */
+/* 			      bgl_err_str(rm_rc)); */
+/* 		} */
 
 		//sleep(3);
 		//debug("Removed Freed Partition %s",part_name);
 	}
+	rm_free_partition_list(part_list);
+		
 //#endif
 #else
 	if ((rc = rm_get_BGL(&bgl)) != STATUS_OK) {

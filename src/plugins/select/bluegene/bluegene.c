@@ -50,10 +50,12 @@ List bgl_list = NULL;			/* list of bgl_record entries */
 List bgl_curr_part_list = NULL;  	/* current bgl partitions */
 List bgl_found_part_list = NULL;  	/* found bgl partitions */
 char *bluegene_blrts = NULL, *bluegene_linux = NULL, *bluegene_mloader = NULL;
-char *bluegene_ramdisk = NULL;
+char *bluegene_ramdisk = NULL, *bridge_api_file = NULL;
 char *change_numpsets = NULL;
+int numpsets;
 bool agent_fini = false;
-
+FILE *fp = NULL;
+		
 /* some local functions */
 #ifdef HAVE_BGL
 static int  _addto_node_list(bgl_record_t *bgl_record, int *start, int *end);
@@ -63,15 +65,15 @@ static int  _validate_config_nodes(void);
 static int  _bgl_record_cmpf_inc(bgl_record_t* rec_a, bgl_record_t* rec_b);
 static int  _parse_bgl_spec(char *in_line);
 static void _process_nodes(bgl_record_t *bgl_record);
+static int _reopen_bridge_log(int api_verb);
 
 /* Initialize all plugin variables */
 extern int init_bgl(void)
 {
 #ifdef HAVE_BGL_FILES
 	int rc;
-	
 	rm_size3D_t bp_size;
-
+	
 	info("Attempting to contact MMCS");
 	if ((rc = rm_set_serial(BGL_SERIAL)) != STATUS_OK) {
 		fatal("init_bgl: rm_set_serial(): %s", bgl_err_str(rc));
@@ -142,6 +144,7 @@ extern void fini_bgl(void)
 	xfree(bluegene_linux);
 	xfree(bluegene_mloader);
 	xfree(bluegene_ramdisk);
+	xfree(bridge_api_file);
 
 #ifdef HAVE_BGL_FILES
 	if(bgl)
@@ -367,25 +370,6 @@ extern int create_static_partitions(List part_list)
 			configure_partition(bgl_record);
 			print_bgl_record(bgl_record);
 			
-/* 			found_record = (bgl_record_t*) xmalloc(sizeof(bgl_record_t)); */
-/* 			list_push(bgl_list, found_record); */
-			
-/* 			found_record->bgl_part_list = bgl_record->bgl_part_list;			 */
-/* 			found_record->hostlist = bgl_record->hostlist; */
-/* 			found_record->nodes = xstrdup(bgl_record->nodes); */
-				
-/* 			found_record->bp_count = bgl_record->bp_count; */
-/* 			found_record->switch_count = bgl_record->switch_count; */
-/* 			found_record->geo[X] = bgl_record->geo[X]; */
-/* 			found_record->geo[Y] = bgl_record->geo[Y]; */
-/* 			found_record->geo[Z] = bgl_record->geo[Z]; */
-			
-/* 			found_record->conn_type = bgl_record->conn_type; */
-/* 			found_record->bitmap = bgl_record->bitmap; */
-/* 			found_record->node_use = SELECT_COPROCESSOR_MODE; */
-/* 			configure_partition(found_record); */
-/* 			/\*********************************************************\/ */
-/* 			print_bgl_record(found_record); */
 #endif
 		}
 	}
@@ -469,43 +453,92 @@ extern int bgl_free_partition(pm_partition_id_t part_id)
 {
 #ifdef HAVE_BGL_FILES
 	rm_partition_state_t state;
-	rm_partition_t *my_part;
-	int rc;
-
-        if ((rc = rm_get_partition(part_id, &my_part))
+	rm_partition_t *part_ptr;
+	int rc, j, num_parts;
+	rm_partition_list_t *part_list;
+	rm_partition_state_flag_t part_state = RM_PARTITION_ALL;
+	char *name;
+		
+	if ((rc = rm_get_partitions_info(part_state, &part_list))
 	    != STATUS_OK) {
-		error("couldn't get the partition in bgl_free_partition");
-	} else {
-		rm_get_data(my_part, RM_PartitionState, &state);
-		if(state != RM_PARTITION_FREE)
-			pm_destroy_partition(part_id);
-			
-		rm_get_data(my_part, RM_PartitionState, &state);
-		while ((state != RM_PARTITION_FREE) 
-		       && (state != RM_PARTITION_ERROR)){
-			debug(".");
-			rc=rm_free_partition(my_part);
-			if(rc!=STATUS_OK){
-				error("Error freeing partition\n");
-				return(-1);
-			}
-			sleep(3);
-			rc=rm_get_partition(part_id,&my_part);
-			if(rc!=STATUS_OK) {
-				error("Error in GetPartition\n");
-				return(-1);
-			}
-			rm_get_data(my_part, RM_PartitionState,
-				    &state);
-		}
-		//Free memory allocated to mypart
-		rc=rm_free_partition(my_part);
-		if(rc!=STATUS_OK){
-			error("Error freeing partition\n");
-			return(-1);
-		}
+		error("rm_get_partitions() errno=%s\n", 
+		      bgl_err_str(rc));
 		
 	}
+	rm_get_data(part_list, RM_PartListSize, &num_parts);
+	for(j=0; j<num_parts; j++) {
+		if(j)
+			rm_get_data(part_list, RM_PartListNextPart, &part_ptr);
+		else
+			rm_get_data(part_list, RM_PartListFirstPart, &part_ptr);
+		rm_get_data(part_ptr, RM_PartitionID, &name);
+		if(!strcasecmp(part_id, name)) {
+			rc = rm_get_data(part_ptr, RM_PartitionState, &state);
+			break;
+		}
+	}
+	rm_free_partition_list(part_list);
+	if(state != RM_PARTITION_FREE)
+		pm_destroy_partition(part_id);
+
+	while ((state != RM_PARTITION_FREE)  
+	       && (state != RM_PARTITION_ERROR)){
+		sleep(3);
+		if ((rc = rm_get_partitions_info(part_state, &part_list))
+		    != STATUS_OK) {
+			error("rm_get_partitions() errno=%s\n", 
+			      bgl_err_str(rc));
+			
+		}
+		rm_get_data(part_list, RM_PartListSize, &num_parts);
+		for(j=0; j<num_parts; j++) {
+			if(j)
+				rm_get_data(part_list, RM_PartListNextPart, &part_ptr);
+			else
+				rm_get_data(part_list, RM_PartListFirstPart, &part_ptr);
+			rm_get_data(part_ptr, RM_PartitionID, &name);
+			if(!strcasecmp(part_id, name)) {
+				rc = rm_get_data(part_ptr, RM_PartitionState, &state);
+				break;
+			}
+		}
+		rm_free_partition_list(part_list);
+	}
+	
+        /* if ((rc = rm_get_partition(part_id, &part_ptr)) */
+/* 	    != STATUS_OK) { */
+/* 		error("couldn't get the partition in bgl_free_partition"); */
+/* 	} else { */
+/* 		rm_get_data(part_ptr, RM_PartitionState, &state); */
+/* 		if(state != RM_PARTITION_FREE) */
+/* 			pm_destroy_partition(part_id); */
+			
+/* 		rm_get_data(part_ptr, RM_PartitionState, &state); */
+/* 		while ((state != RM_PARTITION_FREE)  */
+/* 		       && (state != RM_PARTITION_ERROR)){ */
+/* 			debug("."); */
+/* 			rc=rm_free_partition(part_ptr); */
+/* 			if(rc!=STATUS_OK){ */
+/* 				error("Error freeing partition\n"); */
+/* 				return(-1); */
+/* 			} */
+/* 			sleep(3); */
+/* 			rc=rm_get_partition(part_id,&part_ptr); */
+/* 			if(rc!=STATUS_OK) { */
+/* 				error("Error in GetPartition\n"); */
+/* 				return(-1); */
+/* 			} */
+/* 			rm_get_data(part_ptr, RM_PartitionState, */
+/* 				    &state); */
+/* 		} */
+/* 		//Free memory allocated to mypart */
+/* 		rc=rm_free_partition(part_ptr); */
+/* 		if(rc!=STATUS_OK){ */
+/* 			error("Error freeing partition\n"); */
+/* 			return(-1); */
+/* 		} */
+		
+/* 	} */
 #endif
 	return SLURM_SUCCESS;
 }
@@ -649,54 +682,31 @@ static int _delete_old_partitions(void)
 	ListIterator itr_curr, itr_found;
 	bgl_record_t *found_record, *init_record;
         pm_partition_id_t part_id;
-	rm_partition_t *my_part;
-	int part_number, lowest_part=300;
-	char part_name[7];
-			
-	/******************************************************************/
-	itr_curr = list_iterator_create(bgl_curr_part_list);
-	while ((init_record = (bgl_record_t*) list_next(itr_curr))) {
-		part_id=init_record->bgl_part_id;
-		part_number = atoi(init_record->bgl_part_id+3);
-		if(part_number<lowest_part)
-			lowest_part = part_number;
-	}
-	list_iterator_destroy(itr_curr);
-//	if(lowest_part != 101) {
-	/* 	rm_get_partitions(RM_PARTITION_FREE, &part_list); */
-/* 		rm_get_data(part_list, RM_PartListSize, &size); */
-/* 		printf("This is the size %d\n",size); */
-/* 		for(i=0;i<size;i++) { */
-/* 			if(!i) */
-/* 				rm_get_data(part_list, RM_PartListFirstPart, &my_part); */
-/* 			else */
-/* 				rm_get_data(part_list, RM_PartListNextPart, &my_part); */
-/* 			rm_get_data(my_part, RM_PartListNextPart, &part_id); */
-/* 			printf("this is the name %s\n",part_id); */
-/* 			if(!strncasecmp("RMP",part_id,3)) { */
-/* 				init_record = xmalloc(sizeof(bgl_record_t)); */
-/* 				list_push(bgl_curr_part_list, init_record); */
-/* 				init_record->bgl_part_id = xstrdup(part_id); */
-/* 			} */
-/* 			xfree(part_id); */
-/* 			rm_free_partition(my_part);			 */
-/* 		} */
-/* 		exit(0); */
+	rm_partition_t *part_ptr;
+	int part_number, part_count;
+	char *part_name;
+	rm_partition_list_t *part_list;
+	rm_partition_state_flag_t state = RM_PARTITION_ALL;
 
-	/* Here is where we clear all the partitions that exist. This will need to 
-	   be taken out when we get better code from IBM.
-	*/
-	for(part_number=101; part_number<lowest_part; part_number++) {
-		memset(part_name,0,7);
-		sprintf(part_name, "RMP%d", part_number);
+	/******************************************************************/
+	if ((rc = rm_get_partitions_info(state, &part_list))
+	    != STATUS_OK) {
+		error("rm_get_partitions(): %s",
+		      bgl_err_str(rc));
+		return SLURM_ERROR;
+		
+	}
+	
+	rm_get_data(part_list, RM_PartListSize, &part_count);
+	
+	rm_get_data(part_list, RM_PartListFirstPart, &part_ptr);
+	
+	for(part_number=0; part_number<part_count; part_number++) {
+		rm_get_data(part_ptr, RM_PartitionID, &part_name);
+		if(strncmp("RMP",part_name,3))
+			goto next_partition;
 		//debug("Checking if Partition %s is free",part_name);
-		if ((rc = rm_get_partition(part_name, &my_part))
-		    != STATUS_OK) {
-			debug("Above error is ok. "
-			      "Partition %s doesn't exist.",
-			      part_name);
-			continue;
-		}
+		
 		debug("removing the jobs on partition %s\n",
 		      (char *)part_name);
 		term_jobs_on_part(part_name);
@@ -706,11 +716,16 @@ static int _delete_old_partitions(void)
 		
 		rm_remove_partition(part_name);
 		debug("done\n");
+	next_partition:
+		/* if ((rc = rm_free_partition(part_ptr)) != STATUS_OK) { */
+/* 		} */
+		rm_get_data(part_list, RM_PartListNextPart, &part_ptr);
 		
 		//sleep(3);
 		//debug("Removed Freed Partition %s",part_name);
 	}
-	
+	rm_free_partition_list(part_list);
+
 	/*************************************************/
 //	}
 	
@@ -768,6 +783,7 @@ extern int read_bgl_conf(void)
 	if (last_config_update
 	&&  (last_config_update == config_stat.st_mtime)) {
 		debug("bluegene.conf unchanged");
+		_reopen_bridge_log(0);
 		return SLURM_SUCCESS;
 	}
 	last_config_update = config_stat.st_mtime; 
@@ -828,9 +844,11 @@ extern int read_bgl_conf(void)
 		fatal("MloaderImage not configured in bluegene.conf");
 	if (!bluegene_ramdisk)
 		fatal("RamDiskImage not configured in bluegene.conf");
-	if (!change_numpsets)
-		info("Warning: ChangeNumpsets not configured in bluegene.conf");
-
+	if (!bridge_api_file)
+		fatal("BridgeAPILogFile not configured in bluegene.conf");
+	if (!numpsets)
+		info("Warning: Numpsets not configured in bluegene.conf");
+	
 	/* Check to see if the configs we have are correct */
 	if (!_validate_config_nodes()) { 
 		_delete_old_partitions();
@@ -838,6 +856,7 @@ extern int read_bgl_conf(void)
 		 * partition deletions */
 		sleep(3);
 	}
+	
 	/* looking for partitions only I created */
 	if (create_static_partitions(NULL)) {
 		/* error in creating the static partitions, so
@@ -848,6 +867,7 @@ extern int read_bgl_conf(void)
 		fatal("Error, could not create the static partitions");
 		return error_code;
 	}
+	//printf("yeap\n");
 	return error_code;
 }
 
@@ -880,14 +900,17 @@ static int _parse_bgl_spec(char *in_line)
 	char *nodes = NULL, *conn_type = NULL, *node_use = NULL;
 	char *blrts_image = NULL,   *linux_image = NULL;
 	char *mloader_image = NULL, *ramdisk_image = NULL;
-	char *change = NULL;
+	char *api_file = NULL;
+	int pset_num=8, api_verb=0;
 	bgl_record_t *bgl_record, *found_record;
 	
 	error_code = slurm_parser(in_line,
 				  "BlrtsImage=", 's', &blrts_image,
 				  "LinuxImage=", 's', &linux_image,
 				  "MloaderImage=", 's', &mloader_image,
-				  "ChangeNumpsets=", 's', &change,
+				  "Numpsets=", 'd', &pset_num,
+				  "BridgeAPIVerbose=", 'd', &api_verb,
+				  "BridgeAPILogFile=", 's', &api_file,
 				  "Nodes=", 's', &nodes,
 				  "RamDiskImage=", 's', &ramdisk_image,
 				  "Type=", 's', &conn_type,
@@ -900,31 +923,41 @@ static int _parse_bgl_spec(char *in_line)
 	/* Process system-wide info */
 	if (blrts_image) {
 		xfree(bluegene_blrts);
+		_strip_13_10(blrts_image);
 		bluegene_blrts = blrts_image;
 		blrts_image = NULL;	/* nothing left to xfree */
 	}
 	if (linux_image) {
 		xfree(bluegene_linux);
+		_strip_13_10(linux_image);
 		bluegene_linux = linux_image;
 		linux_image = NULL;	/* nothing left to xfree */
 	}
 	if (mloader_image) {
 		xfree(bluegene_mloader);
+		_strip_13_10(mloader_image);
 		bluegene_mloader = mloader_image;
 		mloader_image = NULL;	/* nothing left to xfree */
 	}
 	if (ramdisk_image) {
 		xfree(bluegene_ramdisk);
+		_strip_13_10(ramdisk_image);
 		bluegene_ramdisk = ramdisk_image;
 		ramdisk_image = NULL;	/* nothing left to xfree */
 	}
-	if (change) {
-		xfree(change_numpsets);
-		_strip_13_10(change);
-		change_numpsets = change;
-		change = NULL;	/* nothing left to xfree */
+	if (api_file) {
+		xfree(bridge_api_file);
+		_strip_13_10(api_file);
+		bridge_api_file = api_file;
+		api_file = NULL;	/* nothing left to xfree */
 	}
-
+	if (pset_num!=8) {
+		numpsets = pset_num;
+		
+	}
+	
+	_reopen_bridge_log(api_verb);
+	
 	/* Process node information */
 	if (!nodes && !conn_type)
 		goto cleanup;	/* no data */
@@ -963,6 +996,7 @@ static int _parse_bgl_spec(char *in_line)
 			bgl_record->node_use = SELECT_COPROCESSOR_MODE;
 		else
 			bgl_record->node_use = SELECT_VIRTUAL_NODE_MODE;
+		bgl_record->partner = NULL;
 	} else {
 		/* If not then we will make both. */
 
@@ -973,6 +1007,9 @@ static int _parse_bgl_spec(char *in_line)
 		found_record = (bgl_record_t*) xmalloc(sizeof(bgl_record_t));
 		list_push(bgl_list, found_record);
 	
+		bgl_record->partner = found_record;
+		found_record->partner = bgl_record;
+		
 		found_record->bgl_part_list = bgl_record->bgl_part_list;			
 		found_record->hostlist = bgl_record->hostlist;
 		found_record->nodes = xstrdup(bgl_record->nodes);
@@ -1103,3 +1140,15 @@ static void _process_nodes(bgl_record_t *bgl_record)
 	return;
 }
 
+static int _reopen_bridge_log(int api_verb)
+{
+	if(fp)
+		fclose(fp);
+	fp = fopen(bridge_api_file,"a");
+	if(fp == NULL) 
+		error("can't open file for bridgeapi.log");
+	else if(api_verb)
+		setSayMessageParams(fp, api_verb);
+		
+	return 1;
+}
