@@ -92,8 +92,7 @@ static void _switch_config(pa_node_t* source, pa_node_t* target, int dim,
 			int port_src, int port_tar);
 /* */
 static void _set_external_wires(int dim, int count, pa_node_t* source, 
-			 pa_node_t* target_1, pa_node_t* target_2, 
-			 pa_node_t* target_first, pa_node_t* target_second);
+			 pa_node_t* target_1, pa_node_t* target_2);
 /* */
 static char *_set_internal_wires(List nodes, int size, int conn_type);
 
@@ -473,9 +472,13 @@ void pa_init(node_info_msg_t *node_info_ptr)
 		
 	_create_pa_system();
 	
-	pa_system_ptr->fill_in_value = (pa_node_t *) 
-		xmalloc(sizeof(pa_node_t) * pa_system_ptr->num_of_proc);
-	
+	if(pa_system_ptr->num_of_proc<298)
+		pa_system_ptr->fill_in_value = (pa_node_t *) 
+			xmalloc(sizeof(pa_node_t) * 300);
+	else
+		pa_system_ptr->fill_in_value = (pa_node_t *) 
+			xmalloc(sizeof(pa_node_t) * (pa_system_ptr->num_of_proc+2));
+		
 	init_grid(node_info_ptr);
 	
 	_create_config_even(pa_system_ptr->grid);
@@ -985,7 +988,7 @@ static int _create_config_even(pa_node_t *grid)
 
 #if HAVE_BGL
 	int y,z;
-	pa_node_t *target_2, *target_first, *target_second;
+	pa_node_t *target_2;
 	for(x=0;x<DIM_SIZE[X];x++) {
 		for(y=0;y<DIM_SIZE[Y];y++) {
 			for(z=0;z<DIM_SIZE[Z];z++) {
@@ -999,14 +1002,8 @@ static int _create_config_even(pa_node_t *grid)
 					target_2 = &grid[x+2][y][z];
 				else
 					target_2 = target_1;
-				target_first = &grid[0][y][z];
-				if (DIM_SIZE[X] > 1)
-					target_second = &grid[1][y][z];
-				else
-					target_second = target_first;
 				_set_external_wires(X, x, source, 
-						target_1, target_2, 
-						target_first, target_second);
+						target_1, target_2);
 				
 				if(y<(DIM_SIZE[Y]-1)) 
 					target_1 = &grid[x][y+1][z];
@@ -1014,16 +1011,14 @@ static int _create_config_even(pa_node_t *grid)
 					target_1 = &grid[x][0][z];
 				
 				_set_external_wires(Y, y, source, 
-						    target_1, NULL, 
-						    NULL, NULL);
+						    target_1, NULL);
 				if(z<(DIM_SIZE[Z]-1)) 
 					target_1 = &grid[x][y][z+1];
 				else 
 					target_1 = &grid[x][y][0];
 				
 				_set_external_wires(Z, z, source, 
-						    target_1, NULL, 
-						    NULL, NULL);
+						    target_1, NULL);
 			}
 		}
 	}
@@ -1051,8 +1046,7 @@ static int _create_config_even(pa_node_t *grid)
 		target_1 = &grid[x+1];
 		
 		_set_external_wires(X, x, source, 
-				    target_1, NULL, 
-				    NULL, NULL);
+				    target_1, NULL);
 	}
 #endif
 	return 1;
@@ -1434,8 +1428,7 @@ static void _switch_config(pa_node_t* source, pa_node_t* target, int dim,
 }
 
 static void _set_external_wires(int dim, int count, pa_node_t* source, 
-		pa_node_t* target_1, pa_node_t* target_2, 
-		pa_node_t* target_first, pa_node_t* target_second)
+		pa_node_t* target_1, pa_node_t* target_2)
 {
 	_switch_config(source, source, dim, 0, 0);
 	_switch_config(source, source, dim, 1, 1);
@@ -1445,47 +1438,46 @@ static void _set_external_wires(int dim, int count, pa_node_t* source,
 		_switch_config(source, source, dim, 4, 4);			
 		return;
 	}
+
 	if(count==0) {
-		/* First Node */
+		/* First Even Node */
 		/* 4->3 of next */
 		_switch_config(source, target_1, dim, 4, 3);
-		/* 2->5 of next */
-		_switch_config(source, target_1, dim, 2, 5);
-		/* 3->4 of next even */
-		_switch_config(source, target_2, dim, 3, 4);
-		if(DIM_SIZE[dim]<4) {
-			/* 5->2 of next even */
-			_switch_config(source, target_2, dim, 5, 2);
-			
-		}
-			
+		/* 5->2 of next */
+		_switch_config(source, target_1, dim, 5, 2);
+		/* 2->5 of next even */
+		_switch_config(source, target_2, dim, 2, 5);	
+
 	} else if(!(count%2)) {
 		if(count<DIM_SIZE[dim]-2) {
 			/* Not Last Even Node */
-			/* 3->4 of next even */
-			_switch_config(source, target_2, dim, 3, 4);
-			/* 2->5 of next */
-			_switch_config(source, target_1, dim, 2, 5);
-			/* 5->2 of next */
-			_switch_config(source, target_1, dim, 5, 2);
+			/* 3->4 of next */
+			_switch_config(source, target_1, dim, 3, 4);
+			/* 4->3 of next */
+			_switch_config(source, target_1, dim, 4, 3);
+			/* 2->5 of next even */
+			_switch_config(source, target_2, dim, 2, 5);
+			/* 5->2 of next even */
+			_switch_config(source, target_2, dim, 5, 2);
+			
 		} else {
 			/* Last Even Node */
 			/* 3->4 of next */
 			_switch_config(source, target_1, dim, 3, 4);
-			/* 5->2 of next */
-			_switch_config(source, target_1, dim, 5, 2);
-			/* 2->5 of first */
-			_switch_config(source, target_first, dim, 2, 5);
+			/* 2->5 of previous */
+			/********** fix me: on the full system this is needed ******/ 
+			//_switch_config(source, target_1, dim, 2, 5);	
+			/********** fix me: not this ******/ 
+			_switch_config(source, target_1, dim, 4, 3);
 		}
 	} else {
 		if(count<DIM_SIZE[dim]-2) {
 			/* Not Last Odd Node */
-			/* 4->3 of next odd */
-			_switch_config(source, target_2, dim, 4, 3);
+			/* 5->2 of next odd */
+			_switch_config(source, target_2, dim, 5, 2);
 		} else {
 			/* Last Odd Node */
-			/* 5->2 of second */
-			_switch_config(source, target_second, dim, 5, 2);
+			/* nothing */
 		}	
 	}	
 }
@@ -1891,41 +1883,32 @@ int main(int argc, char** argv)
 	List results;
 //	List results2;
 //	int i,j;
-	DIM_SIZE[X]=8;
+	DIM_SIZE[X]=4;
 	DIM_SIZE[Y]=1;
 	DIM_SIZE[Z]=1;
 	pa_init(NULL);
-	loc = find_bp_loc("R171");
-	printf("The loc is %d%d%d\n",loc[X],loc[Y],loc[Z]);
-	if((loc = find_bp_loc("R178")))
-		printf("The loc is %d%d%d\n",loc[X],loc[Y],loc[Z]);
-	else
-		printf("This doesn't exsist!\n");
-	exit(0);
 	
-/* 	request->rotate = true; */
-/* 	request->elongate = true; */
-/* 	request->force_contig = true; */
-/* 	request->co_proc = true; */
-/* 	request->geometry[0]=-1; */
+	
 
 	results = list_create(NULL);
-	request->geometry[0] = -1;
-	request->size = 1; //atoi(argv[1]);
+	request->geometry[0] = 4;
+	request->geometry[1] = 1;
+	request->geometry[2] = 1;
+	request->size = 4;
 	request->conn_type = TORUS;
 	new_pa_request(request);
 	print_pa_request(request);
 	allocate_part(request, results);
 
-	results = list_create(NULL);
-	request->geometry[0] = 5;
-	request->geometry[1] = 1;
-	request->geometry[2] = 1;
-	request->size = -1; //atoi(argv[1]);
-	request->conn_type = MESH;
-	new_pa_request(request);
-	print_pa_request(request);
-	allocate_part(request, results);
+	/* results = list_create(NULL); */
+/* 	request->geometry[0] = 5; */
+/* 	request->geometry[1] = 1; */
+/* 	request->geometry[2] = 1; */
+/* 	request->size = -1; //atoi(argv[1]); */
+/* 	request->conn_type = MESH; */
+/* 	new_pa_request(request); */
+/* 	print_pa_request(request); */
+/* 	allocate_part(request, results); */
 
 	int dim,j;
 	int x,y,z;
@@ -1955,11 +1938,11 @@ int main(int argc, char** argv)
 			}
 		}
 	}
-	list_destroy(results);
+	/* list_destroy(results); */
 
-	pa_fini();
+/* 	pa_fini(); */
 
-	delete_pa_request(request);
+/* 	delete_pa_request(request); */
 	
 	return 0;
 }
