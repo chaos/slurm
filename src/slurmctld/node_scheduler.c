@@ -650,8 +650,11 @@ _pick_best_nodes(struct node_set *node_set_ptr, int node_set_size,
 							max_nodes, req_cpus, 
 							contiguous);
 				if (pick_code == SLURM_SUCCESS) {
-					runable_avail = true;
 					runable_ever  = true;
+					if ((node_lim == INFINITE) ||
+					    (bit_set_count(avail_bitmap) <=
+					     node_lim))
+						runable_avail = true;
 				}
 			}
 			if (!runable_ever) {
@@ -751,8 +754,11 @@ int select_nodes(struct job_record *job_ptr, bool test_only)
 	     (job_ptr->time_limit > part_ptr->max_time)) ||
 	    ((job_ptr->details->max_nodes != 0) &&	/* no node limit */
 	     (job_ptr->details->max_nodes < part_ptr->min_nodes)) ||
-	    (job_ptr->details->min_nodes > part_ptr->max_nodes))
+	    (job_ptr->details->min_nodes > part_ptr->max_nodes)) {
+		job_ptr->priority = 1;	/* move to end of queue */
+		last_job_update = time(NULL);
 		return ESLURM_REQUESTED_PART_CONFIG_UNAVAILABLE;
+	}
 
 	/* build sets of usable nodes based upon their configuration */
 	error_code = _build_node_list(job_ptr, &node_set_ptr, &node_set_size);

@@ -1,6 +1,57 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins. 
 
+* Changes in SLURM 0.2.27
+=========================
+ -- Fix for slurmd spinning when stdin buffers are full (gnats:434)
+ -- Forward stacksize limit to jobs.
+
+* Changes in SLURM 0.2.26
+=========================
+ -- Add missing documentation for srun -q,--quit-on-interrupt flag.
+ -- Add new sinfo option -R,--list-reasons for listing down nodes along
+    with their REASON field.
+ -- Add new sinfo options -r,--responding and -d,--dead for filtering
+    responding or non-responding nodes in output.
+
+* Changes in SLURM 0.2.25
+=========================
+ -- Fixes for reported problems:
+   - slurm/381: Hold jobs requesting more resources than partition limit.
+     (patch to fix in version 0.2.23 for certain combination of srun options).
+
+* Changes in SLURM 0.2.24
+=========================
+ -- Fixes for reported problems:
+   - slurm/387: Jobs lost and nodes DOWN on slurmctld restart
+ -- Nodes no longer transition from COMPLETING to DOWN when not responding.
+    Instead, slurmctld either waits for positive verification of job
+    completion, or an administrator must explicitly set the node DOWN.
+ -- New srun option `-q, --quit-on-interrupt' enables single Ctrl-C to
+    terminate running job.
+ -- Improved error message from srun when jobid set in environment is
+    no longer running.
+ -- Added job and node state descriptions to the squeue(1) and sinfo(1) 
+	man pages.
+
+* Changes in SLURM 0.2.23
+========================
+ -- Fixes for reported problems:
+   - slurm/381: Hold jobs requesting more resources than partition limit.
+
+* Changes in SLURM 0.2.22
+=========================
+ -- Fixes for reported problems:
+   - slurm/326: Node stays in completing state indefinitely.
+   - slurm/328: slurmd uses different shared memory key on restart.
+   - slurm/329: Job step processes may be left running when one task dies.
+   - slurm/334: slurmd segv with multiple simultaneous job steps.
+ -- Allow more digits for priority values in scontrol.
+ -- Applied various fixes for memory leaks.
+ -- Remove logic preventing DPCS from allocating jobs with more than 
+    eight node segments. Fix for DPCS should now be in production.
+ -- Changed compact string for DRAINING state to "drng" from "drain."
+
 * Changes in SLURM 0.2.21
 =========================
  -- Fixes for reported problems:
@@ -9,14 +60,17 @@ documents those changes that are of interest to users and admins.
    - slurm/300: Possibly killing wrong job on slurmd restart
    - slurm/312: Freeing non-allocated memory and killing slurmd
  -- Assorted changes to support RedHat Enterprise Linux 3.0 and IA64
+ -- Initial Elan4 and libelanctrl support (--with-elan).
  -- Slurmctld was sometimes inappropriately setting a job's priority 
     to 1 when a node was down (even if up nodes could be used for the 
     job when a running job completes)
  -- Convert all user commands from use of popt library to getopt_long()
  -- If TotalView support is requested, srun exports "totalview_jobid"
     variable for `%J' expansion in TV bulk launch string.
+ -- Fix several locking bugs in slurmd IO layer.
  -- Throttle back repetitious error messages in slurmd to avoid filling
-    slurm logfiles.
+    log files.
+ 
 
 * Changes in SLURM 0.2.20
 =========================
