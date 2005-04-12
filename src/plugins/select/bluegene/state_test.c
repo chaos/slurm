@@ -1,6 +1,8 @@
 /*****************************************************************************\
  *  state_test.c - Test state of Blue Gene base partitions and switches. 
  *  DRAIN nodes in SLURM that are not usable. 
+ *
+ *  $Id$
  *****************************************************************************
  *  Copyright (C) 2004 The Regents of the University of California.
  *  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
@@ -114,6 +116,12 @@ static char *_convert_bp_state(rm_BP_state_t state)
 		break;
 	case RM_BP_DOWN:
 		return "RM_BP_DOWN";
+		break;
+	case RM_BP_MISSING:
+		return "RM_BP_MISSING";
+		break;
+	case RM_BP_ERROR:
+		return "RM_BP_ERROR";
 		break;
 	case RM_BP_NAV:
 		return "RM_BP_NAV";
