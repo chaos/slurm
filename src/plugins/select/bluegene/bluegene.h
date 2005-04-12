@@ -1,5 +1,7 @@
 /*****************************************************************************\
  *  bluegene.h - header for blue gene configuration processing module. 
+ *
+ * $Id$
  *****************************************************************************
  *  Copyright (C) 2004 The Regents of the University of California.
  *  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
@@ -56,12 +58,7 @@
   typedef int      rm_partition_state_t;
 #endif
 
-#include "bgl_job_place.h"
-#include "bgl_job_run.h"
-#include "state_test.h"
-
-#define PSETS_PER_BP 8
-#define USER_NAME "nobody"
+#define USER_NAME "slurm"
 
 /* Global variables */
 extern rm_BGL_t *bgl;
@@ -69,32 +66,38 @@ extern char *bluegene_blrts;
 extern char *bluegene_linux;
 extern char *bluegene_mloader;
 extern char *bluegene_ramdisk;
-extern char *change_numpsets;
+extern char *bridge_api_file;
+extern int numpsets;
 extern pa_system_t *pa_system_ptr;
 extern int DIM_SIZE[PA_SYSTEM_DIMENSIONS];
-
+extern time_t last_bgl_update;
 extern List bgl_curr_part_list; 	/* Initial bgl partition state */
 extern List bgl_list;			/* List of configured BGL blocks */
 extern bool agent_fini;
+extern pthread_mutex_t part_state_mutex;
 
 typedef int lifecycle_type_t;
 enum part_lifecycle {DYNAMIC, STATIC};
 
-typedef struct {
+typedef struct bgl_record {
 	char *nodes;			/* String of nodes in partition */
 	char *owner_name;		/* Owner of partition		*/
+	uid_t owner_uid;   		/* Owner of partition uid	*/
 	pm_partition_id_t bgl_part_id;	/* ID returned from MMCS	*/
 	lifecycle_type_t part_lifecycle;/* either STATIC or DYNAMIC	*/
 	rm_partition_state_t state;   	/* the allocated partition   */
 	int geo[SYSTEM_DIMENSIONS];     /* geometry */
 	rm_connection_type_t conn_type;	/* Mesh or Torus or NAV */
 	rm_partition_mode_t node_use;	/* either COPROCESSOR or VIRTUAL */
-	rm_partition_t *bgl_part;
-	List bgl_part_list;
+	rm_partition_t *bgl_part;       /* structure to hold info from db2 */
+	List bgl_part_list;             /* node list of blocks in partition */
 	hostlist_t hostlist;		/* expanded form of hosts */
 	int bp_count;                   /* size */
-	int switch_count;
-	bitstr_t *bitmap;
+	int switch_count;               /* number of switches used. */
+	int boot_state;                 /* check to see if boot failed. 
+				 * -1 = fail, 0 = not booting, 1 = booting */
+	int boot_count;                 /* number of attemts boot attempts */
+	bitstr_t *bitmap;               /* bitmap to check the name of partition */
 } bgl_record_t;
 
 typedef struct {
@@ -113,6 +116,10 @@ typedef struct {
 	List switch_list;
 } bgl_bp_t;
 
+#include "bgl_part_info.h"
+#include "bgl_job_place.h"
+#include "bgl_job_run.h"
+#include "state_test.h"
 /*
  * bgl_conf_record is used to store the elements read from the bluegene.conf
  * file and is loaded by init().
@@ -179,4 +186,6 @@ extern int read_bgl_partitions(void);
 extern int configure_partition_switches(bgl_record_t * bgl_conf_record);
 extern int bgl_free_partition(pm_partition_id_t part_id);
 
+
 #endif /* _BLUEGENE_H_ */
+ 
