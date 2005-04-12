@@ -27,6 +27,8 @@
 \*****************************************************************************/
 
 #include "src/smap/smap.h"
+#include "src/common/node_select.h"
+#include "src/api/node_select_info.h"
 
 #define _DEBUG 0
 DEF_TIMERS;
@@ -39,7 +41,6 @@ typedef struct {
 	enum connection_type bgl_conn_type;
 	enum node_use_type bgl_node_use;
 	rm_partition_state_t state;
-	hostlist_t hostlist;
 	int letter_num;
 	int start[PA_SYSTEM_DIMENSIONS];
 	int end[PA_SYSTEM_DIMENSIONS];
@@ -47,7 +48,9 @@ typedef struct {
 
 } db2_block_info_t;
 
+#ifdef HAVE_BGL
 static List block_list = NULL;
+#endif
 
 static char* _convert_conn_type(enum connection_type conn_type);
 static char* _convert_node_use(enum node_use_type node_use);
@@ -55,12 +58,13 @@ static void _print_header_part(void);
 static char *_part_state_str(rm_partition_state_t state);
 static int  _print_text_part(partition_info_t *part_ptr, 
 			     db2_block_info_t *db2_info_ptr);
-static void _read_part_db2(void);
-#if HAVE_BGL_FILES
+#ifdef HAVE_BGL
 static int _set_start_finish(db2_block_info_t *db2_info_ptr);
-#endif
+static void _block_list_del(void *object);
+static int _list_match_all(void *object, void *key);
 static int _in_slurm_partition(db2_block_info_t *db2_info_ptr, int *first, int *last);
 static int _print_rest(db2_block_info_t *block_ptr, int *count);
+#endif
 
 void get_slurm_part(void)
 {
@@ -94,6 +98,7 @@ void get_slurm_part(void)
 					  slurm_strerror(slurm_get_errno()));
 			}
 		}
+		return;
 	}
 
 	if (!params.no_header)
@@ -118,21 +123,17 @@ void get_slurm_part(void)
 			j += 2;
 		}
 		part.root_only =
-			(int) pa_system_ptr->
-			fill_in_value[count].letter;
+			(int) letters[count%62];
 		wattron(pa_system_ptr->text_win,
-			COLOR_PAIR(pa_system_ptr->
-				   fill_in_value[count].
-				   color));
+			COLOR_PAIR(colors[count%6]));
 		_print_text_part(&part, NULL);
 		wattroff(pa_system_ptr->text_win,
-			 COLOR_PAIR(pa_system_ptr->
-				    fill_in_value[count].
-				    color));
+			 COLOR_PAIR(colors[count%6]));
 		count++;
 			
 	}
-
+	if(count==128)
+		count=0;
 	if (params.commandline && params.iterate)
 		printf("\n");
 	
@@ -142,11 +143,13 @@ void get_slurm_part(void)
 
 void get_bgl_part(void)
 {
+#ifdef HAVE_BGL
 	int error_code, i, j, recs=0, count = 0;
 	static partition_info_msg_t *part_info_ptr = NULL, *new_part_ptr;
+	static node_select_info_msg_t *bgl_info_ptr = NULL, *new_bgl_ptr;
 	partition_info_t part;
 	int number, start[PA_SYSTEM_DIMENSIONS], end[PA_SYSTEM_DIMENSIONS];
-	db2_block_info_t *db2_info_ptr;
+	db2_block_info_t *block_ptr;
 	ListIterator itr;
 	
 	if (part_info_ptr) {
@@ -176,12 +179,58 @@ void get_bgl_part(void)
 				       slurm_strerror(slurm_get_errno()));
 			}
 		}
+		return;
+	}
+	if (bgl_info_ptr) {
+		error_code = slurm_load_node_select(bgl_info_ptr->last_update, 
+						   &new_bgl_ptr);
+		if (error_code == SLURM_SUCCESS)
+			select_g_free_node_info(&bgl_info_ptr);
+		else if (slurm_get_errno() == SLURM_NO_CHANGE_IN_DATA) {
+			error_code = SLURM_SUCCESS;
+			new_bgl_ptr = bgl_info_ptr;
+		}
+	} else {
+		error_code = slurm_load_node_select((time_t) NULL, &new_bgl_ptr);
+	}
+	if (error_code) {
+		if (quiet_flag != 1) {
+			if(!params.commandline) {
+				mvwprintw(pa_system_ptr->text_win,
+					  pa_system_ptr->ycord, 1,
+					  "slurm_load_partitions: %s",
+					  slurm_strerror(slurm_get_errno()));
+				pa_system_ptr->ycord++;
+			} else {
+				printf("slurm_load_partitions: %s",
+					  slurm_strerror(slurm_get_errno()));
+			}
+		}
+		return;
+	}
+	if (block_list) {
+		/* clear the old list */
+		list_delete_all(block_list, _list_match_all, NULL);
+	} else {
+		block_list = list_create(_block_list_del);
+		if (!block_list) {
+			fprintf(stderr, "malloc error\n");
+			return;
+		}
+	}
+	for (i=0; i<new_bgl_ptr->record_count; i++) {
+		block_ptr = xmalloc(sizeof(db2_block_info_t));
+		list_append(block_list, block_ptr);
+		
+		block_ptr->bgl_block_name = xstrdup(new_bgl_ptr->bgl_info_array[i].bgl_part_id);
+		block_ptr->nodes = xstrdup(new_bgl_ptr->bgl_info_array[i].nodes);
+		block_ptr->bgl_user_name = xstrdup(new_bgl_ptr->bgl_info_array[i].owner_name);
+		block_ptr->state = new_bgl_ptr->bgl_info_array[i].state;
+		block_ptr->bgl_conn_type = new_bgl_ptr->bgl_info_array[i].conn_type;
+		block_ptr->bgl_node_use = new_bgl_ptr->bgl_info_array[i].node_use;
+		_set_start_finish(block_ptr);
 	}
 	
-	
-	_read_part_db2();
-	
-
 	if (!params.no_header)
 		_print_header_part();
 
@@ -218,9 +267,9 @@ void get_bgl_part(void)
 		
 		if (block_list) {
 			itr = list_iterator_create(block_list);
-			while ((db2_info_ptr = (db2_block_info_t*) list_next(itr)) != NULL) {
-				if(_in_slurm_partition(db2_info_ptr, start, end))
-					db2_info_ptr->slurm_part_name = xstrdup(part.name);
+			while ((block_ptr = (db2_block_info_t*) list_next(itr)) != NULL) {
+				if(_in_slurm_partition(block_ptr, start, end))
+					block_ptr->slurm_part_name = xstrdup(part.name);
 			}
 			list_iterator_destroy(itr);
 		}
@@ -229,8 +278,8 @@ void get_bgl_part(void)
 	/* Report any BGL Blocks not in a SLURM partition */
 	if (block_list) {
 		itr = list_iterator_create(block_list);
-		while ((db2_info_ptr = (db2_block_info_t*) list_next(itr)) != NULL)
-			_print_rest(db2_info_ptr, &count);
+		while ((block_ptr = (db2_block_info_t*) list_next(itr)) != NULL)
+			_print_rest(block_ptr, &count);
 		list_iterator_destroy(itr);
 	}
 
@@ -238,6 +287,8 @@ void get_bgl_part(void)
 		printf("\n");
 
 	part_info_ptr = new_part_ptr;
+	bgl_info_ptr = new_bgl_ptr;
+#endif /* HAVE_BGL */
 	return;
 }
 
@@ -284,7 +335,6 @@ static void _print_header_part(void)
 		pa_system_ptr->xcord = 1;
 		pa_system_ptr->ycord++;
 	} else {
-		printf("ID\t");
 		printf("PARTITION\t");
 		if (params.display != BGLPART) {
 			printf("AVAIL\t");
@@ -306,7 +356,7 @@ static char *_part_state_str(rm_partition_state_t state)
 {
 	static char tmp[16];
 
-#ifdef HAVE_BGL_FILES
+#ifdef HAVE_BGL
 	switch (state) {
 		case RM_PARTITION_BUSY: 
 			return "BUSY";
@@ -456,11 +506,10 @@ static int _print_text_part(partition_info_t *part_ptr,
 		pa_system_ptr->xcord = 1;
 		pa_system_ptr->ycord++;
 	} else {
-		printf("%c\t", part_ptr->root_only);
-		
 		if (part_ptr->name) {
-			printf("%s\t", part_ptr->name);
-			pa_system_ptr->xcord += 10;
+			printf("%.9s\t", part_ptr->name);
+			if(!params.parse)
+				printf("\t");
 			if (params.display != BGLPART) {
 				if (part_ptr->state_up)
 					printf("UP\t");
@@ -483,21 +532,31 @@ static int _print_text_part(partition_info_t *part_ptr,
 
 		if (params.display == BGLPART) {
 			if (db2_info_ptr) {
-				printf("%s\t", db2_info_ptr->bgl_block_name);
+				printf("%.11s\t", db2_info_ptr->bgl_block_name);
+				if(!params.parse)
+					printf("\t");
 				printf("%s\t", _part_state_str(db2_info_ptr->state));
 				
-				printf("%s\t", db2_info_ptr->bgl_user_name);
+				printf("%.11s\t", db2_info_ptr->bgl_user_name);
 				
-				printf("%s\t", _convert_conn_type(
+				printf("%.5s\t", _convert_conn_type(
 					       db2_info_ptr->bgl_conn_type));
-				printf("%s\t",  _convert_node_use(
+				printf("%.9s\t",  _convert_node_use(
 					       db2_info_ptr->bgl_node_use));
+				if(!params.parse)
+					if(db2_info_ptr->bgl_node_use != 
+					   SELECT_COPROCESSOR_MODE)
+						printf("\t");
 			} else {
 				printf("?\t");
+				if(!params.parse)
+					printf("\t");
 				printf("?\t");
 				printf("?\t");
 				printf("?\t");
 				printf("?\t");
+				if(!params.parse)
+					printf("\t");
 			}
 		}
 
@@ -514,7 +573,7 @@ static int _print_text_part(partition_info_t *part_ptr,
 	return printed;
 }
 
-#ifdef HAVE_BGL_FILES
+#ifdef HAVE_BGL
 static void _block_list_del(void *object)
 {
 	db2_block_info_t *block_ptr = (db2_block_info_t *)object;
@@ -528,49 +587,11 @@ static void _block_list_del(void *object)
 			xfree(block_ptr->slurm_part_name);
 		if(block_ptr->nodes)
 			xfree(block_ptr->nodes);
-		if (block_ptr->hostlist)
-			hostlist_destroy(block_ptr->hostlist);
 		
 		xfree(block_ptr);
 		
 	}
 }
-
-/*
- * Convert a BGL API error code to a string
- * IN inx - error code from any of the BGL Bridge APIs
- * RET - string describing the error condition
- */
-char *bgl_err_str(status_t inx)
-{
-	switch (inx) {
-	case STATUS_OK:
-		return "Status OK";
-	case PARTITION_NOT_FOUND:
-		return "Partition not found";
-	case JOB_NOT_FOUND:
-		return "Job not found";
-	case BP_NOT_FOUND:
-		return "Base partition not found";
-	case SWITCH_NOT_FOUND:
-		return "Switch not found";
-	case JOB_ALREADY_DEFINED:
-		return "Job already defined";
-	case CONNECTION_ERROR:
-		return "Connection error";
-	case INTERNAL_ERROR:
-		return "Internal error";
-	case INVALID_INPUT:
-		return "Invalid input";
-	case INCOMPATIBLE_STATE:
-		return "Incompatible state";
-	case INCONSISTENT_DATA:
-		return "Inconsistent data";
-	}
-
-	return "?";
-}
-
 
 
 static int _list_match_all(void *object, void *key)
@@ -621,7 +642,6 @@ static int _set_start_finish(db2_block_info_t *db2_info_ptr)
 /* 	       db2_info_ptr->end[X],db2_info_ptr->end[Y],db2_info_ptr->end[Z]); */
 	return 1;
 }
-#endif
 
 static int _in_slurm_partition(db2_block_info_t *db2_info_ptr, int *first, int *last)
 {
@@ -697,153 +717,16 @@ static int _print_rest(db2_block_info_t *block_ptr, int *count)
 		part.name = "no part";
 
 	part.allow_groups = block_ptr->nodes;
-	part.root_only = (int) pa_system_ptr->fill_in_value[block_ptr->letter_num].letter;	
+	part.root_only = (int) letters[block_ptr->letter_num%62];	
 	
 	wattron(pa_system_ptr->text_win, 
-		COLOR_PAIR(pa_system_ptr->fill_in_value[block_ptr->letter_num].color));
+		COLOR_PAIR(colors[block_ptr->letter_num%6]));
 	_print_text_part(&part, block_ptr);
 	wattroff(pa_system_ptr->text_win,
-		 COLOR_PAIR(pa_system_ptr->fill_in_value[block_ptr->letter_num].color));
+		 COLOR_PAIR(colors[block_ptr->letter_num%6]));
 	return SLURM_SUCCESS;
 }
-
-#ifdef HAVE_BGL_FILES
-static int _post_block_read(void *object, void *arg)
-{
-	db2_block_info_t *block_ptr = (db2_block_info_t *) object;
-	int len = 1024;
-	
-	block_ptr->nodes = xmalloc(len);
-	while (hostlist_ranged_string(block_ptr->hostlist, len, 
-				      block_ptr->nodes) < 0) {
-		len *= 2;
-		xrealloc(block_ptr->nodes, len);
-	}
-	_set_start_finish(block_ptr);
-				
-	return SLURM_SUCCESS;
-} 
 #endif
-
-static void _read_part_db2(void)
-{
-#ifdef HAVE_BGL_FILES
-	status_t rc;
-/* 	static rm_BGL_t *bgl = NULL; */
-	int bp_num, i;
-	char *bp_id;
-	rm_partition_t *part_ptr;
-	db2_block_info_t *block_ptr;
-	//block_t *block_ptr;
-	char *user_name;
-	int part_number;
-	char part_name[7];
-	char node_name_tmp[7];
-	rm_element_t *bp_ptr;
-	int *coord;
-	rm_connection_type_t conn_type;
-	rm_partition_mode_t node_use;
-	
-	if ((rc = rm_set_serial(BGL_SERIAL)) != STATUS_OK) {
-		error("rm_set_serial(): %d\n", rc);
-		return;
-	}			
-	
-	if (block_list) {
-		/* clear the old list */
-		list_delete_all(block_list, _list_match_all, NULL);
-	} else {
-		block_list = list_create(_block_list_del);
-		if (!block_list) {
-			fprintf(stderr, "malloc error\n");
-			return;
-		}
-	}	
-
-	for(part_number=101; part_number<300; part_number++) {
-		memset(part_name,0,7);
-		sprintf(part_name, "RMP%d", part_number);
-		//printf("Checking if Partition %s is free",part_name);
-		if ((rc = rm_get_partition(part_name, &part_ptr))
-		    != STATUS_OK) {
-			break;
-		}		
-		
-		if ((rc = rm_get_data(part_ptr, RM_PartitionBPNum, &bp_num)) != STATUS_OK) {
-			error("rm_get_data(RM_BPNum): %s", bgl_err_str(rc));
-			bp_num = 0;
-		}
-		if(bp_num==0)
-			continue;
-		if ((rc = rm_get_data(part_ptr, RM_PartitionFirstBP, &bp_ptr))
-		    != STATUS_OK) {
-			error("rm_get_data(RM_FirstBP): %s",
-			      bgl_err_str(rc));
-			rc = SLURM_ERROR;
-			return;
-		}
-		block_ptr = xmalloc(sizeof(db2_block_info_t));
-		list_append(block_list, block_ptr);
-		block_ptr->bgl_block_name = xstrdup(part_name);
-		
-		block_ptr->hostlist = hostlist_create(NULL);
-		
-		for (i=0; i<bp_num; i++) {
-			if ((rc = rm_get_data(bp_ptr, RM_BPID, &bp_id))
-			    != STATUS_OK) {
-				error("rm_get_data(RM_BPLoc): %s",
-				      bgl_err_str(rc));
-				rc = SLURM_ERROR;
-				break;
-			}
-			coord = find_bp_loc(bp_id);
-						
-			sprintf(node_name_tmp, "bgl%d%d%d", 
-				coord[X], coord[Y], coord[Z]);
-
-			hostlist_push(block_ptr->hostlist, node_name_tmp);
-			if ((rc = rm_get_data(part_ptr, RM_PartitionNextBP, &bp_ptr))
-			    != STATUS_OK) {
-				error("rm_get_data(RM_NextBP): %s",
-				      bgl_err_str(rc));
-				rc = SLURM_ERROR;
-				break;
-			}
-		}	
-		if ((rc = rm_get_data(part_ptr, 
-				      RM_PartitionState, 
-				      &block_ptr->state)) != STATUS_OK) {
-		}
-		
-		if ((rc = rm_get_data(part_ptr, 
-				      RM_PartitionUserName, 
-				      &user_name)) != STATUS_OK) {
-		} else
-			block_ptr->bgl_user_name = xstrdup(user_name);
-		
-		if ((rc = rm_get_data(part_ptr,
-				      RM_PartitionConnection,
-				      &conn_type)) != STATUS_OK) {
-			block_ptr->bgl_conn_type = SELECT_NAV;
-		} else
-			block_ptr->bgl_conn_type = conn_type;
-		if ((rc = rm_get_data(part_ptr, RM_PartitionMode,
-				      &node_use))
-		    != STATUS_OK) {
-			block_ptr->bgl_node_use = SELECT_NAV_MODE;
-		} else
-			block_ptr->bgl_node_use = node_use;
-
-		if ((rc = rm_free_partition(part_ptr)) != STATUS_OK) {
-		}			
-	}
-
-	/* perform post-processing for each bluegene partition */
-	list_for_each(block_list, _post_block_read, NULL);
-
-#endif
-}
-
 
 static char* _convert_conn_type(enum connection_type conn_type)
 {

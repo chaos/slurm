@@ -46,8 +46,10 @@ int max_display;
 static int _get_option();
 static void *_resize_handler(int sig);
 static int _set_pairs();
+#ifndef HAVE_BGL
 static int _scroll_grid(int dir);
-
+#endif /* HAVE_BGL */
+ 
 int main(int argc, char *argv[])
 {
 	log_options_t opts = LOG_OPTS_STDERR_ONLY;
@@ -61,7 +63,9 @@ int main(int argc, char *argv[])
 	int end = 0;
 	int i;
 	int rc;
-		
+#ifdef HAVE_BGL
+	int mapset = 0;	
+#endif
 	//char *name;	
         	
 	log_init(xbasename(argv[0]), opts, SYSLOG_FACILITY_DAEMON, NULL);
@@ -69,36 +73,16 @@ int main(int argc, char *argv[])
 	error_code = slurm_load_node((time_t) NULL, &new_node_ptr, 0);
 
 	if (error_code) {
-#ifdef HAVE_BGL_FILES
-		rm_BGL_t *bgl;
-		rm_size3D_t bp_size;
-		if ((rc = rm_set_serial(BGL_SERIAL)) != STATUS_OK) {
-			exit(-1);
-		}
-		
-		if ((rc = rm_get_BGL(&bgl)) != STATUS_OK) {
-			exit(-1);
-		}
-		
-		if ((rc = rm_get_data(bgl, RM_Msize, &bp_size)) != STATUS_OK) {
-			exit(-1);
-		}
-		verbose("BlueGene configured with %d x %d x %d base partitions",
-			bp_size.X, bp_size.Y, bp_size.Z);
-		DIM_SIZE[X]=bp_size.X;
-		DIM_SIZE[Y]=bp_size.Y;
-		DIM_SIZE[Z]=bp_size.Z;
-		rm_free_BGL(bgl);
-#else
-		slurm_perror("slurm_load_node");
+		printf("slurm_load_node: %s", slurm_strerror(slurm_get_errno()));
 		exit(0);
-#endif
-		pa_init(NULL);
 	} else {
 		pa_init(new_node_ptr);
 	}	
-
+	
 	if(params.partition) {
+#ifdef HAVE_BGL_FILES
+		if(!mapset)
+			mapset = set_bp_map();
 		if(params.partition[0] == 'r')
 			params.partition[0] = 'R';
 		if(params.partition[0] != 'R') {
@@ -126,15 +110,17 @@ int main(int argc, char *argv[])
 			else
 				printf("%s has no resolve.\n", params.partition);
 		}
+#else
+		printf("must be on BGL SN to resolve.\n");
+#endif
 		exit(0);
 	}
 	if(!params.commandline) {
-		_set_pairs();
 		
 		signal(SIGWINCH, (sighandler_t) _resize_handler);
 		initscr();
 		
-#if HAVE_BGL
+#ifdef HAVE_BGL
 		height = DIM_SIZE[Y] * DIM_SIZE[Z] + DIM_SIZE[Y] + 3;
 		width = DIM_SIZE[X] + DIM_SIZE[Z] + 3;
 		if (COLS < (75 + width) || LINES < height) {
@@ -157,12 +143,13 @@ int main(int argc, char *argv[])
 		curs_set(1);
 		nodelay(stdscr, TRUE);
 		start_color();
+		_set_pairs();
 		
 		pa_system_ptr->grid_win = newwin(height, width, starty, startx);
 		max_display = pa_system_ptr->grid_win->_maxy*pa_system_ptr->grid_win->_maxx;
 		//scrollok(pa_system_ptr->grid_win, TRUE);
 		
-#if HAVE_BGL
+#ifdef HAVE_BGL
 		startx = width;
 		COLS -= 2;
 		width = COLS - width;
@@ -199,8 +186,14 @@ int main(int argc, char *argv[])
 		case SLURMPART:
 			get_slurm_part();
 			break;
-#if HAVE_BGL
+#ifdef HAVE_BGL
 		case COMMANDS:
+			if(!mapset) {
+				mapset = set_bp_map();
+				wclear(pa_system_ptr->text_win);
+				//doupdate();
+				//move(0,0);
+			}
 			get_command();
 			break;
 		case BGLPART:
@@ -282,7 +275,7 @@ int main(int argc, char *argv[])
 
 static int _get_option()
 {
-	char ch;
+	int ch;
 
 	ch = getch();
 	switch (ch) {
@@ -294,7 +287,7 @@ static int _get_option()
 		params.display = JOBS;
 		return 1;
 		break;
-#if HAVE_BGL
+#ifdef HAVE_BGL
 	case 'b':
 		params.display = BGLPART;
 		return 1;
@@ -304,6 +297,8 @@ static int _get_option()
 		return 1;
 		break;
 #endif
+
+#ifndef HAVE_BGL
 	case 'u':
 	case KEY_UP:
 		line_cnt--;
@@ -323,6 +318,7 @@ static int _get_option()
 		_scroll_grid(line_cnt*(pa_system_ptr->grid_win->_maxx-1));
 		return 2;
 		break;
+#endif
 	case 'q':
 	case '\n':
 		endwin();
@@ -335,6 +331,7 @@ static int _get_option()
 static void *_resize_handler(int sig)
 {
 	int startx=0, starty=0;
+	int height, width;
 	pa_system_ptr->ycord = 1;
 	
 	delwin(pa_system_ptr->grid_win);
@@ -343,13 +340,13 @@ static void *_resize_handler(int sig)
 	endwin();
 	initscr();
 
-#if HAVE_BGL
-	int height = DIM_SIZE[Y] * DIM_SIZE[Z] + DIM_SIZE[Y] + 3;
-	int width = DIM_SIZE[X] + DIM_SIZE[Z] + 3;
+#ifdef HAVE_BGL
+	height = DIM_SIZE[Y] * DIM_SIZE[Z] + DIM_SIZE[Y] + 3;
+	width = DIM_SIZE[X] + DIM_SIZE[Z] + 3;
 	if (COLS < (75 + width) || LINES < height) {
 #else
-	int height = 10;
-	int width = COLS;
+	height = 10;
+	width = COLS;
 	if (COLS < 75 || LINES < height) {
 #endif
 
@@ -363,7 +360,7 @@ static void *_resize_handler(int sig)
 	max_display = pa_system_ptr->grid_win->_maxy*
 		pa_system_ptr->grid_win->_maxx;
 		
-#if HAVE_BGL
+#ifdef HAVE_BGL
 	startx = width;
 	COLS -= 2;
 	width = COLS - width;
@@ -385,7 +382,7 @@ static void *_resize_handler(int sig)
 	case SLURMPART:
 		get_slurm_part();
 		break;
-#if HAVE_BGL
+#ifdef HAVE_BGL
 	case COMMANDS:
 		get_command();
 		break;
@@ -409,33 +406,30 @@ static int _set_pairs()
 {
 	int x,y,z;
 
-	z = 0;
 	y = 65;
-	for (x = 0; x < pa_system_ptr->num_of_proc; x++) {
+	for (x = 0; x < 62; x++) {
 		if (y == 91)
 			y = 97;
 		else if(y == 123)
 			y = 48;
 		else if(y == 58)
 			y = 65;
-		pa_system_ptr->fill_in_value[x].letter = y;
+		letters[x] = y;
 		y++;
+	}
+
+	z=1;
+	for (x = 0; x < 6; x++) {
 		if(z == 4)
 			z++;
-		z = z % 7;
-		if (z == 0)
-			z = 1;
-		
-		pa_system_ptr->fill_in_value[x].color = z;
+		colors[x] = z;				
+		init_pair(colors[x], colors[x], COLOR_BLACK);
 		z++;
-		
-		init_pair(pa_system_ptr->fill_in_value[x].color,
-			  pa_system_ptr->fill_in_value[x].color,
-			  COLOR_BLACK);
 	}
 	return 1;
 }
 
+#ifndef HAVE_BGL
 static int _scroll_grid(int dir)
 {
 	print_grid(dir);
@@ -443,3 +437,4 @@ static int _scroll_grid(int dir)
 	doupdate();
 	return 1;
 }
+#endif /* HAVE_BGL */
