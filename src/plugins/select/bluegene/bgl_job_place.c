@@ -1,6 +1,8 @@
 /*****************************************************************************\
  *  bgl_job_place.c - blue gene job placement (e.g. base partition selection)
- *  functions. 
+ *  functions.
+ *
+ *  $Id$ 
  *****************************************************************************
  *  Copyright (C) 2004 The Regents of the University of California.
  *  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
@@ -88,11 +90,16 @@ static int _find_best_partition_match(struct job_record* job_ptr,
 		int spec, bgl_record_t** found_bgl_record)
 {
 	ListIterator itr;
-	bgl_record_t* record;
+	bgl_record_t* record = NULL;
 	int i;
 	uint16_t req_geometry[SYSTEM_DIMENSIONS];
 	uint16_t conn_type, node_use, rotate, target_size = 1;
 	uint32_t req_procs = job_ptr->num_procs;
+
+	if(!bgl_list) {
+		error("_find_best_partition_match: There is no bgl_list");
+		return SLURM_ERROR;
+	}
 
 	select_g_get_jobinfo(job_ptr->select_jobinfo,
 		SELECT_DATA_CONN_TYPE, &conn_type);
@@ -108,6 +115,7 @@ static int _find_best_partition_match(struct job_record* job_ptr,
 		target_size = min_nodes;
 	/* this is where we should have the control flow depending on
 	 * the spec arguement */
+
 	itr = list_iterator_create(bgl_list);
 	*found_bgl_record = NULL;
 
@@ -239,7 +247,7 @@ extern int submit_job(struct job_record *job_ptr, bitstr_t *slurm_part_bitmap,
 		      int min_nodes, int max_nodes)
 {
 	int spec = 1; /* this will be like, keep TYPE a priority, etc,  */
-	bgl_record_t* record;
+	bgl_record_t* record = NULL;
 	char buf[100];
 
 	select_g_sprint_jobinfo(job_ptr->select_jobinfo, buf, sizeof(buf), 
@@ -247,16 +255,12 @@ extern int submit_job(struct job_record *job_ptr, bitstr_t *slurm_part_bitmap,
 	debug("bluegene:submit_job: %s nodes=%d-%d", buf, min_nodes, max_nodes);
 	
 	if ((_find_best_partition_match(job_ptr, slurm_part_bitmap, min_nodes, 
-					max_nodes, spec, &record)) == SLURM_ERROR) {
+				max_nodes, spec, &record)) == SLURM_ERROR) {
 		return SLURM_ERROR;
 	} else {
 		/* now we place the part_id into the env of the script to run */
 		char bgl_part_id[BITSIZE];
-#ifdef HAVE_BGL_FILES
 		snprintf(bgl_part_id, BITSIZE, "%s", record->bgl_part_id);
-#else
-		snprintf(bgl_part_id, BITSIZE, "UNDEFINED");
-#endif
 		select_g_set_jobinfo(job_ptr->select_jobinfo,
 			SELECT_DATA_PART_ID, bgl_part_id);
 	}
