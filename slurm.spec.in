@@ -24,8 +24,12 @@ Requires: openssl >= 0.9.6
 #
 %if %{?_with_debug:1}%{!?_with_debug:0}
   %define _enable_debug --enable-debug
-  %define __os_install_post /usr/lib/rpm/brp-compress
 %endif
+#
+# Never allow rpm to strip binaries as this will break
+#  parallel debugging capability
+#
+%define __os_install_post /usr/lib/rpm/brp-compress
 
 
 %package devel
@@ -108,16 +112,16 @@ rm -rf "$RPM_BUILD_ROOT"
 mkdir -p "$RPM_BUILD_ROOT"
 DESTDIR="$RPM_BUILD_ROOT" make install
 
-install -D -m755 etc/init.d.slurm $RPM_BUILD_ROOT/etc/rc.d/init.d/slurm
+install -D -m755 etc/init.d.slurm $RPM_BUILD_ROOT/etc/init.d/slurm
 install -D -m644 etc/slurm.conf.example $RPM_BUILD_ROOT/etc/slurm/slurm.conf
 # Delete unpackaged files:
-rm -f $RPM_BUILD_ROOT/usr/lib/slurm/*.{a,la}
+rm -f $RPM_BUILD_ROOT/%{_libdir}/slurm/*.{a,la}
 
 # Build file lists for optional plugin packages
 for plugin in auth_munge auth_authd switch_elan; do
    LIST=./${plugin}.files
    touch $LIST
-   test -f $RPM_BUILD_ROOT/usr/lib/slurm/${plugin}.so &&
+   test -f $RPM_BUILD_ROOT/%{_libdir}/slurm/${plugin}.so &&
      echo %{_libdir}/slurm/${plugin}.so > $LIST
 done
 
@@ -154,7 +158,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/slurm/sched_builtin.so
 %{_libdir}/slurm/switch_none.so
 %dir %{_libdir}/slurm/src
-%config(noreplace) /etc/rc.d/init.d/slurm
+%config(noreplace) /etc/init.d/slurm
 %config(noreplace) /etc/slurm/slurm.conf
 #############################################################################
 
@@ -189,29 +193,24 @@ rm -rf $RPM_BUILD_ROOT
 #############################################################################
 
 %pre
-#if [ -x /etc/rc.d/init.d/slurm ]; then
-#    if /etc/rc.d/init.d/slurm status | grep -q running; then
-#        /etc/rc.d/init.d/slurm stop
+#if [ -x /etc/init.d/slurm ]; then
+#    if /etc/init.d/slurm status | grep -q running; then
+#        /etc/init.d/slurm stop
 #    fi
 #fi
 
 %post
 /sbin/ldconfig %{_libdir}
-if [ -x /etc/rc.d/init.d/slurm ]; then
-    [ -x /sbin/chkconfig ] && /sbin/chkconfig --del slurm
+if [ $1 = 1 ]; then
     [ -x /sbin/chkconfig ] && /sbin/chkconfig --add slurm
-#    if ! /etc/rc.d/init.d/slurm status | grep -q running \
-#      || ! /etc/rc.d/init.d/slurm test | grep -q  slurmctld; then
-#        /etc/rc.d/init.d/slurm start
-#    fi 
 fi
 
 %preun
-if [ "$1" = 0 ]; then
-    if [ -x /etc/rc.d/init.d/slurm ]; then
+if [ $1 = 0 ]; then
+    if [ -x /etc/init.d/slurm ]; then
         [ -x /sbin/chkconfig ] && /sbin/chkconfig --del slurm
-        if /etc/rc.d/init.d/slurm status | grep -q running; then
-            /etc/rc.d/init.d/slurm stop
+        if /etc/init.d/slurm status | grep -q running; then
+            /etc/init.d/slurm stop
         fi
     fi
 fi
@@ -224,6 +223,11 @@ fi
 
 
 %changelog
+* Fri Oct 01 2004 Mark Grondona <mgrondona@llnl.gov>
+- don't delete and add service in %post
+* Wed Aug 04 2004 Mark Grondona <mgrondona@llnl.gov>
+- don't allow rpm to strip binaries since this breaks interface to parallel
+  debuggers.
 * Thu Jul 29 2004 Morris Jette <jette1@llnl.gov>
 - added checkpoint_none.so and jobcomp_script.so plugins
 * Fri Mar 07 2004 Mark Grondona <mgrondona@llnl.gov>
