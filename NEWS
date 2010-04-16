@@ -1,6 +1,9 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.2.0.pre6
+=============================
+
 * Changes in SLURM 2.2.0.pre5
 =============================
  -- Modify commands to accept time format with one or two digit hour value
@@ -35,6 +38,8 @@ documents those changes that are of interest to users and admins.
  -- Speed up job start when using the slurmdbd.
  -- Forward step failure reason back to slurmd before in some cases it would
     just be SLURM_FAILURE returned.
+ -- Changed squeue to fail when passed invalid -o <output_format> or
+    -S <sort_list> specifications.
 
 * Changes in SLURM 2.2.0.pre4
 =============================
@@ -182,6 +187,8 @@ documents those changes that are of interest to users and admins.
 
 * Changes in SLURM 2.1.8
 ========================
+ -- Update BUILD_NOTES for AIX and bgp systems on how to get sview to
+    build correctly.
 
 * Changes in SLURM 2.1.7
 ========================
