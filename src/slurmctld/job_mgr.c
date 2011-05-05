@@ -4088,7 +4088,7 @@ _write_data_array_to_file(char *file_name, char **data, uint32_t size)
 		return ESLURM_WRITING_TO_FILE;
 	}
 
-	if (data == NULL)
+	if (data == NULL) {
 		close(fd);
 		return SLURM_SUCCESS;
 	}
