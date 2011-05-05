@@ -325,6 +325,7 @@ read_proc()
 				} 
 				if (sess_free == NULL) {
 					error ("read_proc: Internal error");
+					closedir(proc_fs);
 					return EINVAL;
 				} 
 			} 
