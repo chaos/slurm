@@ -4089,7 +4089,9 @@ _write_data_array_to_file(char *file_name, char **data, uint32_t size)
 	}
 
 	if (data == NULL)
+		close(fd);
 		return SLURM_SUCCESS;
+	}
 
 	for (i = 0; i < size; i++) {
 		nwrite = strlen(data[i]) + 1;
@@ -4233,6 +4235,7 @@ _read_data_array_from_file(char *file_name, char ***data, uint32_t * size,
 	if (rec_cnt == 0) {
 		*data = NULL;
 		*size = 0;
+		close(fd);
 		return;
 	}
 
