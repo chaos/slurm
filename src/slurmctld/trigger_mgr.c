@@ -1425,7 +1425,7 @@ static void _trigger_run_program(trig_mgr_info_t *trig_in)
 
 	if (!_validate_trigger(trig_in))
 		return;
-	strncpy(program, trig_in->program, sizeof(program));
+	strncpy(program, trig_in->program, sizeof(program)-1);
 	pname = strrchr(program, '/');
 	if (pname == NULL)
 		pname = program;
