@@ -1,36 +1,10 @@
-<html>
+<!--#include virtual="header.txt"-->
 
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-  <title>SLURM User Group 2011</title>
-  <link href="data.css" rel="stylesheet" type="text/css">
-</head>
+      <a href="http:///www.bull.com" target="_blank"><img src="bull.jpg" style="float: right;" border="0"></a></p>
 
-<body>
-  <div id="container">
+      <h1>Slurm User Group Meeting 2011</h1>
 
-    <div id="banner">
-      <table width="100%" border=0 cellspacing=0 cellpadding=0>
-	<tr>
-	  <td><h1>Slurm User Group 2011</h1></td>
-	  <td>
-	    <a href="http://www.bull.com">
-	      <img src="bull.jpg" border="0" style="float:right"></a>
-	  </td>
-	</tr>
-      </table>
-    </div>
-    
-    <div id="navigation">
-      <h1><a href="index.htm" class="nav">Home</a></h1>
-      <h1><a href="agenda.htm" class="nav">Agenda</a></h1>
-      <h1><a href="submission.htm" class="nav">Submission</a></h1>
-      <h1><a href="registration.htm" class="nav">Registration</a></h1>
-      <h1><a href="directions.htm" class="nav">Directions</a></h1>
-      <h1><a href="contact.htm" class="nav">Contact</a></h1>
-    </div>
-
-    <div id="content">
+      <p>Hosted by  <a href="http:///www.bull.com">Bull</a>
 
       <h1>Agenda</h1>
 
@@ -43,6 +17,33 @@
 	The <a href="#schedule">Schedule</a>  amd <a href="#abstracts">Abstracts</a>
 	are shown below.
       </p>
+
+      <h2>Hotel Information</h2>
+	<p>The meeting will be held at
+	<a href="http://embassysuites1.hilton.com/en_US/es/hotel/PHXNOES-Embassy-Suites-Phoenix-North-Arizona/index.do">Embassy Suites Phoenix - North</a>
+	2577 West Greenway Road, Phoenix, Arizona, USA (Phone: 1-602-375-1777 Fax: 1-602-375-4012).
+	You may book your reservations on line at
+	<a href="http://embassysuites1.hilton.com/en_US/es/hotel/PHXNOES-Embassy-Suites-Phoenix-North-Arizona/index.do">Embassy Suites Phoenix - North</a><p></p>
+
+	<p>Please reference Bull when making your reservations to recieve a $79/room rate.</p>
+
+      <h2>Directions and Transportation</h2>
+	<p>From Phoenix Sky Harbor Airport, take I-10 west to I-17 North.
+	Follow I-17 to the Greenway Road, exit 211 approximately 15 miles.
+	Exit and turn right, 1/8th of a mile on the right is the hotel entrance.</p>
+        <p><a href="http://embassysuites1.hilton.com/en_US/es/hotel/PHXNOES-Embassy-Suites-Phoenix-North-Arizona/directions.do;jsessionid=DDD31DD6EFFAF2D32299955C321976F3.etc83">
+	View all directions, map, and airport information</a></p>
+
+      <h2>Contact</h2>
+	<p>If you need further informations about the event, or the
+	registration protocols, contact the
+        <a href="mailto:Nancy.Kritkausky@bull.com?subject=Informations">
+	<b>Slurm User Group 2011</b></a> organizers.<br>
+
+
+      <h2>Registration</h2>
+	<p>Please <a href="slurm_ug_registration.html">register</a> online no later
+	than August 22.</p>
 
       <a name="schedule"><h1>Schedule</h1></a>
 
@@ -338,7 +339,7 @@
 	<li>Task Placement with Cgroups</li>
 	</ul>
 
-	<h2> Keynote</h2>
+	<h2> Keynote Speaker</h2>
 	William Kramer (NCSA)
 
 	<h2>Session #1</h2>
@@ -429,24 +430,5 @@
 	SLURM's design and development work.
 	We also invite proposals for hosting the SLURM User Group Meeting in 2012.
 
-    </div>
-
-    <div id="footer">
-      <div id="left">&nbsp;&nbsp;<span class="ucrlnum">LLNL-WEB-438012 |</span> <a href="https://www.llnl.gov/disclaimer.html" target="_blank" class="privacy">Privacy &amp; Legal Notice</a></div>
-      <div id="right"><span class="ucrlnum">13 September 2010&nbsp;&nbsp;</span></div>
-    </div>
-    <div id="footer2">
-      <div id="left2"><img src="https://computing.llnl.gov/linux/slurm/sponsors.gif" width="129" height="30" border="0" usemap="#Map2"></div>
-      <div id="center2"><a href="https://www.llnl.gov/" target="_blank" class="footer">Lawrence Livermore National Laboratory</a><br />
-        <span class="smalltextblue">7000 East Avenue &#8226; Livermore, CA 94550</span></div>
-      <div id="right2"><span class="smalltextblue">Operated by Lawrence Livermore National Security, LLC, for the</span>
-        <a href="http://www.energy.gov/" target="_blank" class="footer">Department of Energy's</a><br />
-        <a href="http://www.nnsa.doe.gov/" target="_blank" class="footer">National Nuclear Security Administration</a></div>
-      <div style="clear:both;"></div>
-    </div>
-
-  </div>
-
-</body>
-</html>
+<!--#include virtual="footer.txt"-->
 

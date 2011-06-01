@@ -1183,11 +1183,18 @@ env_array_for_step(char ***dest,
 		select_g_select_jobinfo_sprint(step->select_jobinfo,
 					       geo_char, sizeof(geo_char),
 					       SELECT_PRINT_GEOMETRY);
-		env_array_overwrite_fmt(dest, "SLURM_STEP_GEO", "%s", geo_char);
+		if (geo_char[0] != '0')
+			env_array_overwrite_fmt(dest, "SLURM_STEP_GEO",
+						"%s", geo_char);
+		select_g_select_jobinfo_sprint(step->select_jobinfo,
+					       geo_char, sizeof(geo_char),
+					       SELECT_PRINT_START_LOC);
+		env_array_overwrite_fmt(dest, "SLURM_STEP_START_LOC",
+					"%s", geo_char);
 	}
 
 	env_array_overwrite_fmt(dest, "SLURM_STEP_NUM_NODES",
-				"%hu", node_cnt);
+				"%u", node_cnt);
 	env_array_overwrite_fmt(dest, "SLURM_STEP_NUM_TASKS",
 				"%u", step->step_layout->task_cnt);
 	env_array_overwrite_fmt(dest, "SLURM_STEP_TASKS_PER_NODE", "%s", tpn);
@@ -1211,7 +1218,7 @@ env_array_for_step(char ***dest,
 	env_array_overwrite_fmt(dest, "SLURM_STEPID", "%u", step->job_step_id);
 	if (!preserve_env) {
 		env_array_overwrite_fmt(dest, "SLURM_NNODES",
-					"%hu", node_cnt);
+					"%u", node_cnt);
 		env_array_overwrite_fmt(dest, "SLURM_NTASKS", "%u",
 					step->step_layout->task_cnt);
 		/* keep around for old scripts */
