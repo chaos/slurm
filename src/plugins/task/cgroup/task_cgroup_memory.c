@@ -71,6 +71,7 @@ static float allowed_swap_space;  /* Allowed Swap percent         */
 
 static uint64_t max_ram;        /* Upper bound for memory.limit_in_bytes  */
 static uint64_t max_swap;       /* Upper bound for swap                   */
+static uint64_t min_ram_space;  /* Don't constrain RAM below this value       */
 
 static uint32_t totalram;        /* Total real memory available on node    */
 
@@ -127,6 +128,7 @@ extern int task_cgroup_memory_init(slurm_cgroup_conf_t *slurm_cgroup_conf)
 	max_ram = percent_in_bytes(totalram, slurm_cgroup_conf->max_ram_percent);
 	max_swap = percent_in_bytes(totalram, slurm_cgroup_conf->max_swap_percent);
 	max_swap += max_ram;
+	min_ram_space = slurm_cgroup_conf->min_ram_space * 1024 * 1024;
 
         /*
          *  Warning: OOM Killer must be disabled for slurmstepd
@@ -203,7 +205,11 @@ static uint64_t mem_limit_in_bytes (uint64_t mem)
 		mem = totalram * 1024 * 1024;
 	else
 		mem = percent_in_bytes (mem, allowed_ram_space);
-	return ((mem < max_ram) ? mem : max_ram);
+	if (mem < min_ram_space)
+		return (min_ram_space);
+	if (mem > max_ram)
+		return (max_ram);
+	return (mem);
 }
 
 /*
@@ -221,7 +227,11 @@ static uint64_t swap_limit_in_bytes (uint64_t mem)
 	 */
 	swap = percent_in_bytes (mem ? mem : totalram, allowed_swap_space);
 	mem = mem_limit_in_bytes (mem) + swap;
-	return ((mem < max_swap) ? mem : max_swap);
+	if (mem < min_ram_space)
+		return (min_ram_space);
+	if (mem > max_swap)
+		return (max_swap);
+	return (mem);
 }
 
 static int memcg_initialize (xcgroup_ns_t *ns, xcgroup_t *cg,
