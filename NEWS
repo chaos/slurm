@@ -1,6 +1,22 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.0-2.1chaos
+=================================
+ -- Allow appending version information to SLURM_RELEASE
+ -- cgroups: Update cgroup.conf manpage
+ -- cgroups: Add new config parameter MinRAMSpace
+ -- cgroups: Allow percent values in cgroup.conf to be floating point
+ -- task/cgroup: Don't create memory cgroups with limit of 0 bytes
+ -- task/cgroup: Apply MaxRamPercent and MaxSwapPercent to memory cgroups
+ -- cgroups: Add MaxRAMPercent and MaxSwapPercent config parameters
+ -- Propagate real_memory_size to slurmstepd at job start
+ -- task/cgroup: Refactor task_cgroup_memory_create
+ -- cgroups: Support configurable cgroup mount dir in release agent
+ -- cgroups: Allow cgroup mount point to be configurable
+ -- Allow job owner to use scontrol notify
+ -- Do not print error on duplicated select plugins
+
 * Changes in SLURM 2.3.0-2
 ==========================
  -- Fix for memory issue inside sview.
