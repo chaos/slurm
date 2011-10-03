@@ -73,7 +73,7 @@ static uint64_t max_ram;        /* Upper bound for memory.limit_in_bytes  */
 static uint64_t max_swap;       /* Upper bound for swap                   */
 static uint64_t min_ram_space;  /* Don't constrain RAM below this value       */
 
-static uint32_t totalram;        /* Total real memory available on node    */
+static uint64_t totalram;       /* Total real memory available on node    */
 
 static inline uint64_t percent_in_bytes (uint64_t mb, float percent)
 {
@@ -122,7 +122,7 @@ extern int task_cgroup_memory_init(slurm_cgroup_conf_t *slurm_cgroup_conf)
 	allowed_ram_space = slurm_cgroup_conf->allowed_ram_space;
 	allowed_swap_space = slurm_cgroup_conf->allowed_swap_space;
 
-	if ((totalram = conf->real_memory_size) == 0)
+	if ((totalram = (uint64_t) conf->real_memory_size) == 0)
 		error ("task/cgroup: Unable to get RealMemory size");
 
 	max_ram = percent_in_bytes(totalram, slurm_cgroup_conf->max_ram_percent);
