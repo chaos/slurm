@@ -1,6 +1,13 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.0-2.2chaos
+=================================
+ -- cgroups: Fix a bug in calculation of memory cgroup size that resulted
+     in limiting RAM to well below the intended amount.
+ -- cgroups: Add a debug message at initialization detailing current
+     configuration of task/cgroup/memory subsystem.
+
 * Changes in SLURM 2.3.0-2.1chaos
 =================================
  -- Allow appending version information to SLURM_RELEASE
