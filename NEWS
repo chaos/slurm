@@ -1,6 +1,11 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.0-2.3chaos
+=================================
+ -- Updated set_oomadj.c, replacing deprecated oom_adj reference with
+    oom_score_adj
+
 * Changes in SLURM 2.3.0-2.2chaos
 =================================
  -- cgroups: Fix a bug in calculation of memory cgroup size that resulted
