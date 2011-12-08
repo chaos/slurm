@@ -596,10 +596,11 @@ static void _start_agent(bg_action_t *bg_action_ptr)
 	}
 	if (bg_record->state == RM_PARTITION_DEALLOCATING) {
 		debug("Block is in Deallocating state, waiting for free.");
-		bg_free_block(bg_record, 1, 1);
-		/* no reason to reboot here since we are already
-		   deallocating */
-		bg_action_ptr->reboot = 0;
+		/* It doesn't appear state of a small block
+		   (conn_type) is held on a BGP system so
+		   if we to reset it so, just set the reboot flag and
+		   handle it later in that code. */
+		bg_action_ptr->reboot = 1;
 		/* Since bg_free_block will unlock block_state_mutex
 		   we need to make sure the block we want is still
 		   around.  Failure will unlock this so no need to
@@ -742,7 +743,7 @@ static void _start_agent(bg_action_t *bg_action_ptr)
 		rc = 1;
 	}
 
-	if (rc) {
+	if (rc || bg_action_ptr->reboot) {
 		bg_record->modifying = 1;
 
 		bg_free_block(bg_record, 1, 1);
@@ -828,20 +829,6 @@ static void _start_agent(bg_action_t *bg_action_ptr)
 			      bg_err_str(rc));
 
 #endif
-		bg_record->modifying = 0;
-	} else if (bg_action_ptr->reboot) {
-		bg_record->modifying = 1;
-
-		bg_free_block(bg_record, 1, 1);
-
-		/* Since bg_free_block will unlock block_state_mutex
-		   we need to make sure the block we want is still
-		   around.  Failure will unlock block_state_mutex so
-		   no need to unlock before return.
-		*/
-		if (!_make_sure_block_still_exists(bg_action_ptr, bg_record))
-			return;
-
 		bg_record->modifying = 0;
 	}
 
