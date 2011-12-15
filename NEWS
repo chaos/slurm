@@ -1,6 +1,10 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.2-1.1chaos
+=================================
+ -- Fix CHAOS BZ#1337: sbatch --get-user-env chokes on bash functions
+
 * Changes in SLURM 2.3.2
 ========================
  -- Add configure option of "--without-rpath" which builds SLURM tools without
