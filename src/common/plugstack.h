@@ -66,6 +66,8 @@ struct spank_launcher_job_info {
 
 int spank_init (slurmd_job_t *job);
 
+int spank_slurmd_init (void);
+
 int spank_init_allocator (void);
 
 int spank_init_post_opt (void);
@@ -81,6 +83,8 @@ int spank_user_task (slurmd_job_t *job, int taskid);
 int spank_task_post_fork (slurmd_job_t *job, int taskid);
 
 int spank_task_exit (slurmd_job_t *job, int taskid);
+
+int spank_slurmd_exit (void);
 
 int spank_fini (slurmd_job_t *job);
 
