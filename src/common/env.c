@@ -56,6 +56,7 @@
 #include "slurm/slurm.h"
 #include "src/common/log.h"
 #include "src/common/env.h"
+#include "src/common/fd.h"
 #include "src/common/read_config.h"
 #include "src/common/xassert.h"
 #include "src/common/xmalloc.h"
@@ -80,6 +81,7 @@ strong_alias(env_array_append,		slurm_env_array_append);
 strong_alias(env_array_append_fmt,	slurm_env_array_append_fmt);
 strong_alias(env_array_overwrite,	slurm_env_array_overwrite);
 strong_alias(env_array_overwrite_fmt,	slurm_env_array_overwrite_fmt);
+strong_alias(env_unset_environment,	slurm_env_unset_environment);
 
 #define ENV_BUFSIZE (256 * 1024)
 
@@ -1526,8 +1528,34 @@ void env_array_set_environment(char **env_array)
 }
 
 /*
+ * Unset all of the environment variables in a user's current
+ * environment.
+ *
+ * (Note: becuae the environ array is decrementing with each
+ *  unsetenv, only increment the ptr on a failure to unset.)
+ */
+void env_unset_environment(void)
+{
+	extern char **environ;
+
+	int rc = 0;
+	char **ptr;
+	char name[256], *value;
+
+	value = xmalloc(ENV_BUFSIZE);
+	for (ptr = (char **)environ; *ptr != NULL;) {
+		if ((_env_array_entry_splitter(*ptr, name, sizeof(name),
+					       value, ENV_BUFSIZE)) &&
+		     (unsetenv(name) != -1))
+		rc = 1;
+		else ptr++;
+	}
+	xfree(value);
+}
+
+/*
  * Merge all of the environment variables in src_array into the
- * array dest_array.  Any variables already found in dest_array
+ * array dest_array. Any variables already found in dest_array
  * will be overwritten with the value from src_array.
  */
 void env_array_merge(char ***dest_array, const char **src_array)
@@ -1542,7 +1570,7 @@ void env_array_merge(char ***dest_array, const char **src_array)
 	for (ptr = (char **)src_array; *ptr != NULL; ptr++) {
 		if (_env_array_entry_splitter(*ptr, name, sizeof(name),
 					      value, ENV_BUFSIZE))
-			env_array_overwrite(dest_array, name, value);
+				env_array_overwrite(dest_array, name, value);
 	}
 	xfree(value);
 }
@@ -1579,6 +1607,86 @@ static int _bracket_cnt(char *value)
 	return count;
 }
 
+/*
+ * Load user environment from a specified file or pipe.
+ *
+ * This will read in a user specified file or pipe, that is invoked
+ * via the --export-file option in sbatch. The NAME=value entries must
+ * be NULL separated to support special characters in the environment
+ * definitions.
+ *
+ * (Note: This is being added to a minor release. For the
+ * next major release, it might be a consideration to merge
+ * this funcitonality with that of load_env_cache and update
+ * env_cache_builder to use the NULL character.)
+ */
+char **env_array_from_file(const char *fname)
+{
+	char *buf = NULL, *ptr = NULL, *eptr = NULL;
+	char *value, *p;
+	char **env = NULL;
+	char name[256];
+	int buf_size = BUFSIZ, buf_left;
+	int file_size = 0, tmp_size;
+	int separator = '\0';
+	int fd;
+
+	/*
+	 * If file name is a numeric value, then it is assumed to be a
+	 * pipe.
+	 */
+	fd = (int)strtol(fname, &p, 10);
+	if (*p != '\0' || fd < 3 || fd > sysconf(_SC_OPEN_MAX) ||
+	     fcntl(fd, F_GETFL) < 0) {
+		fd = open(fname, O_RDONLY );
+		if (fd == -1) {
+			error("Could not open user environment file %s", fname);
+			return NULL;
+		}
+		verbose("Getting environment variables from %s", fname);
+	} else
+		verbose("Getting environment variables from pipe %d", fd);
+
+	/*
+	 * Then read in the user's environment data.
+	 */
+	buf = ptr = xmalloc(buf_size);
+	buf_left = buf_size;
+	while((tmp_size = read(fd, ptr, buf_left)) > 0) {
+		if (errno == EINTR)
+			continue;
+		buf_left -= tmp_size;
+		file_size += tmp_size;
+		if (buf_left == 0) {
+			buf_size += BUFSIZ;
+			xrealloc(buf, buf_size);
+		}
+		ptr = buf + file_size;
+		buf_left = buf_size - file_size;
+	}
+	close(fd);
+
+	/*
+	 * Parse the buffer into individual environment variable names
+	 * and build the environment.
+	 */
+	env = env_array_create();
+	value  = xmalloc(ENV_BUFSIZE);
+	for (ptr=buf; ; ptr = eptr+1) {
+		eptr = strchr(ptr, separator);
+		if (ptr == eptr || eptr == NULL)
+			break;
+		if (_env_array_entry_splitter(ptr, name, sizeof(name),
+					      value, ENV_BUFSIZE) &&
+		    (!_discard_env(name, value))){
+                        env_array_overwrite(&env, name, value);
+		}
+	}
+	xfree(buf);
+	xfree(value);
+
+	return env;
+}
 
 /*
  * Load user environment from a cache file located in

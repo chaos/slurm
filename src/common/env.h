@@ -181,8 +181,14 @@ env_array_for_step(char ***dest,
 char **env_array_create(void);
 
 /*
+ * Unset all of the environment variables in a user's current
+ * environment.
+ */
+void env_unset_environment(void);
+
+/*
  * Merge all of the environment variables in src_array into the
- * array dest_array.  Any variables already found in dest_array
+ * array dest_array. Any variables already found in dest_array
  * will be overwritten with the value from src_array.
  */
 void env_array_merge(char ***dest_array, const char **src_array);
@@ -250,6 +256,11 @@ int env_array_overwrite_fmt(char ***array_ptr, const char *name,
  * variables in a supplied environment variable array.
  */
 void env_array_set_environment(char **env_array);
+
+/*
+ * load environment from specified file name.
+ */
+char **env_array_from_file(const char *filename);
 
 /*
  * Return an array of strings representing the specified user's default
