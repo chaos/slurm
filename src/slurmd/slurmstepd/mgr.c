@@ -172,7 +172,7 @@ static int  _access(const char *path, int modes, uid_t uid, gid_t gid);
 static void _send_launch_failure(launch_tasks_request_msg_t *,
 				 slurm_addr_t *, int);
 static int  _drain_node(char *reason);
-static int  _fork_all_tasks(slurmd_job_t *job);
+static int  _fork_all_tasks(slurmd_job_t *job,bool *io_initialized);
 static int  _become_user(slurmd_job_t *job, struct priv_state *ps);
 static void  _set_prio_process (slurmd_job_t *job);
 static void _set_job_log_prefix(slurmd_job_t *job);
@@ -920,22 +920,22 @@ job_manager(slurmd_job_t *job)
 		goto fail1;
 	}
 
-#ifdef HAVE_CRAY
-	/*
-	 * We need to call the proctrack/sgi_job container-create function here
-	 * already since the select/cray plugin needs the job container ID in
-	 * order to CONFIRM the ALPS reservation.
-	 * It is not a good idea to perform this setup in _fork_all_tasks(),
-	 * since any transient failure of ALPS (which can happen in practice)
-	 * will then set the frontend node to DRAIN.
-	 */
 	if ((job->cont_id == 0) &&
 	    (slurm_container_create(job) != SLURM_SUCCESS)) {
-		error("failed to create proctrack/sgi_job container: %m");
+		error("slurm_container_create: %m");
 		rc = ESLURMD_SETUP_ENVIRONMENT_ERROR;
 		goto fail1;
 	}
 
+#ifdef HAVE_CRAY
+	/*
+	 * Note that the previously called slurm_container_create function is   
+	 * mandatory since the select/cray plugin needs the job container
+	 * ID in order to CONFIRM the ALPS reservation.
+	 * It is not a good idea to perform this setup in _fork_all_tasks(),
+	 * since any transient failure of ALPS (which can happen in practice)
+	 * will then set the frontend node to DRAIN.
+	 */
 	rc = _select_cray_plugin_job_ready(job);
 	if (rc != SLURM_SUCCESS) {
 		/*
@@ -951,33 +951,19 @@ job_manager(slurmd_job_t *job)
 	}
 #endif
 
-	set_umask(job);		/* set umask for stdout/err files */
-	if (job->user_managed_io)
-		rc = _setup_user_managed_io(job);
-	else
-		rc = _setup_normal_io(job);
-	/*
-	 * Initialize log facility to copy errors back to srun
-	 */
-	if(!rc)
-		rc = _slurmd_job_log_init(job);
-
-	if (rc) {
-		error("IO setup failed: %m");
-		job->task[0]->estatus = 0x0100;
-		step_complete.step_rc = 0x0100;
-		rc = SLURM_SUCCESS;	/* drains node otherwise */
-		goto fail2;
-	} else {
-		io_initialized = true;
+	debug2("Before call to spank_init()");
+	if (spank_init (job) < 0) {
+		error ("Plugin stack initialization failed.");
+		rc = SLURM_PLUGIN_NAME_INVALID;
+		goto fail1;
 	}
+	debug2("After call to spank_init()");
 
 	/* Call interconnect_init() before becoming user */
 	if (!job->batch &&
 	    (interconnect_init(job->switch_job, job->uid) < 0)) {
 		/* error("interconnect_init: %m"); already logged */
 		rc = ESLURM_INTERCONNECT_FAILURE;
-		io_close_task_fds(job);
 		goto fail2;
 	}
 
@@ -985,17 +971,22 @@ job_manager(slurmd_job_t *job)
 	if (checkpoint_stepd_prefork(job) != SLURM_SUCCESS) {
 		error("Failed checkpoint_stepd_prefork");
 		rc = SLURM_FAILURE;
-		io_close_task_fds(job);
 		goto fail2;
 	}
 
 	/* calls pam_setup() and requires pam_finish() if successful */
-	if (_fork_all_tasks(job) < 0) {
+	if ((rc = _fork_all_tasks(job,&io_initialized)) < 0) {
 		debug("_fork_all_tasks failed");
 		rc = ESLURMD_EXECVE_FAILED;
-		io_close_task_fds(job);
 		goto fail2;
 	}
+
+	/*
+	 * If IO initialization failed, return SLURM_SUCCESS
+	 * or the node will be drain otherwise
+	 */
+	if (rc == SLURM_SUCCESS && !io_initialized)
+		goto fail2;
 
 	io_close_task_fds(job);
 
@@ -1017,12 +1008,6 @@ job_manager(slurmd_job_t *job)
 	jobacct_gather_g_endpoll();
 
 	job->state = SLURMSTEPD_STEP_ENDING;
-
-	/*
-	 * This just cleans up all of the PAM state and errors are logged
-	 * below, so there's no need for error handling.
-	 */
-	pam_finish();
 
 	if (!job->batch &&
 	    (interconnect_fini(job->switch_job) < 0)) {
@@ -1063,6 +1048,15 @@ job_manager(slurmd_job_t *job)
 	 * Warn task plugin that the user's step have terminated
 	 */
 	post_step(job);
+
+	/*
+	 * This just cleans up all of the PAM state in case rc == 0
+	 * which means _fork_all_tasks performs well.
+	 * Must be done after IO termination in case of IO operations
+	 * require something provided by the PAM (i.e. security token)
+	 */
+	if (!rc)
+		pam_finish();
 
 	debug2("Before call to spank_fini()");
 	if (spank_fini (job)  < 0) {
@@ -1226,7 +1220,7 @@ static void _unblock_signals (void)
 /* fork and exec N tasks
  */
 static int
-_fork_all_tasks(slurmd_job_t *job)
+_fork_all_tasks(slurmd_job_t *job,bool *io_initialized)
 {
 	int rc = SLURM_SUCCESS;
 	int i;
@@ -1236,19 +1230,6 @@ _fork_all_tasks(slurmd_job_t *job)
 	List exec_wait_list = NULL;
 
 	xassert(job != NULL);
-
-	if ((job->cont_id == 0) &&
-	    (slurm_container_create(job) != SLURM_SUCCESS)) {
-		error("slurm_container_create: %m");
-		return SLURM_ERROR;
-	}
-
-	debug2("Before call to spank_init()");
-	if (spank_init (job) < 0) {
-		error ("Plugin stack initialization failed.");
-		return SLURM_ERROR;
-	}
-	debug2("After call to spank_init()");
 
 	set_oom_adj(0);	/* the tasks may be killed by OOM */
 	if (pre_setuid(job)) {
@@ -1265,11 +1246,43 @@ _fork_all_tasks(slurmd_job_t *job)
 	if (pam_setup(job->pwd->pw_name, conf->hostname)
 	    != SLURM_SUCCESS){
 		error ("error in pam_setup");
-		goto fail1;
+		rc = SLURM_ERROR;
 	}
 
-	if (seteuid (job->pwd->pw_uid) < 0) {
-		error ("seteuid: %m");
+	/*
+	 * Reclaim privileges to do the io setup
+	 */
+	_reclaim_privileges (&sprivs);
+	if(rc)
+		goto fail1; /* pam_setup error */
+
+	set_umask(job);		/* set umask for stdout/err files */
+	if (job->user_managed_io)
+		rc = _setup_user_managed_io(job);
+	else
+		rc = _setup_normal_io(job);
+	/*
+	 * Initialize log facility to copy errors back to srun
+	 */
+	if(!rc)
+		rc = _slurmd_job_log_init(job);
+
+	if (rc) {
+		error("IO setup failed: %m");
+		job->task[0]->estatus = 0x0100;
+		step_complete.step_rc = 0x0100;
+		rc = SLURM_SUCCESS;	/* drains node otherwise */
+		goto fail1;
+	} else {
+		*io_initialized = true;
+	}
+
+	/*
+	 * Temporarily drop effective privileges
+	 */
+	if (_drop_privileges (job, true, &sprivs) < 0) {
+		error ("_drop_privileges: %m");
+		rc = SLURM_ERROR;
 		goto fail2;
 	}
 
@@ -1463,6 +1476,7 @@ fail3:
 	if (exec_wait_list)
 		list_destroy (exec_wait_list);
 fail2:
+	io_close_task_fds(job);
 fail1:
 	pam_finish();
 	return rc;
