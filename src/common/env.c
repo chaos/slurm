@@ -1609,7 +1609,7 @@ char **env_array_from_file(const char *fname)
 	 * pipe.
 	 */
 	fd = (int)strtol(fname, &p, 10);
-	if (*p != 0 || fd < 3 || fd > sysconf(_SC_OPEN_MAX) ||
+	if (*p != '\0' || fd < 3 || fd > sysconf(_SC_OPEN_MAX) ||
 	     fcntl(fd, F_GETFL) < 0) {
 		fd = open(fname, O_RDONLY );
 		if (fd == -1) {
@@ -1650,7 +1650,8 @@ char **env_array_from_file(const char *fname)
 	while (ptr) {
 		memset(line, 0, ENV_BUFSIZE);
 		eptr = strchr(ptr, separator);
-		if (ptr == eptr || eptr == NULL) break;
+		if (ptr == eptr || eptr == NULL)
+			break;
 		strncpy(line, ptr,(eptr - ptr));
  		ptr = eptr+1;
 		if (_env_array_entry_splitter(line, name, sizeof(name),
