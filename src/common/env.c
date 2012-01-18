@@ -1608,20 +1608,17 @@ char **env_array_from_file(const char *fname)
 	 * If file name is a numeric value, then it is assumed to be a
 	 * pipe.
 	 */
-	if ((fd = (int)strtol(fname, &p, 10)) && !(*p)) {
-		if (fcntl (fd, F_GETFL, 0) < 0) {
-			error("bad file descriptor for pipe.");
-			return NULL;
-		}
-		verbose("Getting environment variables from pipe %d", fd);
-	} else {
+	fd = (int)strtol(fname, &p, 10);
+	if (*p != 0 || fd < 3 || fd > sysconf(_SC_OPEN_MAX) ||
+	     fcntl(fd, F_GETFL) < 0) {
 		fd = open(fname, O_RDONLY );
 		if (fd == -1) {
 			error("Could not open user environment file %s", fname);
 			return NULL;
 		}
 		verbose("Getting environment variables from %s", fname);
-	}
+	} else
+		verbose("Getting environment variables from pipe %d", fd);
 
 	/*
 	 * Then read in the user's environment data.
