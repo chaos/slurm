@@ -1428,13 +1428,27 @@ int env_array_overwrite(char ***array_ptr, const char *name,
 }
 
 /*
+ * Append a single environment variable to an environment variable array
+ * if a variable by that name does not already exist.  If a variable
+ * by the same name is found in the array, it is not overwritten with the
+ * new value.
+ *
+ * Return 1 on success, and 0 on error.
+ */
+int env_array_add(char ***array_ptr, const char *name,
+			const char *value)
+{
+	return _env_array_update(array_ptr, name, value, false);
+}
+
+/*
  * Copy env_array must be freed by env_array_free
  */
 char **env_array_copy(const char **array)
 {
 	char **ptr = NULL;
 
-	env_array_merge(&ptr, array);
+	env_array_merge(&ptr, array, 0);
 
 	return ptr;
 }
@@ -1528,10 +1542,13 @@ void env_array_set_environment(char **env_array)
 
 /*
  * Merge all of the environment variables in src_array into the
- * array dest_array.  Any variables already found in dest_array
- * will be overwritten with the value from src_array.
+ * array dest_array. Any variables already found in dest_array
+ * will be overwritten with the value from src_array if add_env
+ * is false. If add_env is true, they will be added only if they
+ * did not previously exist.
  */
-void env_array_merge(char ***dest_array, const char **src_array)
+void env_array_merge(char ***dest_array, const char **src_array,
+		     bool add_env)
 {
 	char **ptr;
 	char name[256], *value;
@@ -1542,8 +1559,12 @@ void env_array_merge(char ***dest_array, const char **src_array)
 	value = xmalloc(ENV_BUFSIZE);
 	for (ptr = (char **)src_array; *ptr != NULL; ptr++) {
 		if (_env_array_entry_splitter(*ptr, name, sizeof(name),
-					      value, ENV_BUFSIZE))
-			env_array_overwrite(dest_array, name, value);
+					      value, ENV_BUFSIZE)) {
+			if (add_var == false)
+				env_array_overwrite(dest_array, name, value);
+			else
+				env_array_add(dest_array, name, value);
+		}
 	}
 	xfree(value);
 }

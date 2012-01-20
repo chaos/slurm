@@ -182,10 +182,13 @@ char **env_array_create(void);
 
 /*
  * Merge all of the environment variables in src_array into the
- * array dest_array.  Any variables already found in dest_array
- * will be overwritten with the value from src_array.
+ * array dest_array. Any variables already found in dest_array
+ * will be overwritten with the value from src_array if add_env 
+ * is false. If add_env is true, they will be added only if they
+ * did not previously exist.
  */
-void env_array_merge(char ***dest_array, const char **src_array);
+void env_array_merge(char ***dest_array, const char **src_array,
+		     bool add_env);
 
 /*
  * Copy env_array must be freed by env_array_free

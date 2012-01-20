@@ -206,7 +206,7 @@ static void _env_merge_filter(job_desc_msg_t *desc)
 		if (strchr(tok, '=')) {
 			save_env[0] = tok;
 			env_array_merge(&desc->environment,
-					(const char **)save_env);
+					(const char **)save_env, 0);
 		} else {
 			len = strlen(tok);
 			for (i=0; environ[i]; i++) {
@@ -215,7 +215,7 @@ static void _env_merge_filter(job_desc_msg_t *desc)
 					continue;
 				save_env[0] = environ[i];
 				env_array_merge(&desc->environment,
-						(const char **)save_env);
+						(const char **)save_env, 0);
 				break;
 			}
 		}
@@ -391,13 +391,13 @@ static int _fill_job_desc_from_opts(job_desc_msg_t *desc)
 	desc->environment = NULL;
 	if (opt.export_file) {
 		desc->environment = env_array_from_file(opt.export_file);
+		env_array_merge(&desc->environment, (const char **)environ, 1);
 		if (desc->environment == NULL)
 			exit(1);
-		opt.get_user_env_time = -1;
 	} else if (opt.export_env == NULL) {
-		env_array_merge(&desc->environment, (const char **)environ);
+		env_array_merge(&desc->environment, (const char **)environ, 0);
 	} else if (!strcasecmp(opt.export_env, "ALL")) {
-		env_array_merge(&desc->environment, (const char **)environ);
+		env_array_merge(&desc->environment, (const char **)environ, 0);
 	} else if (!strcasecmp(opt.export_env, "NONE")) {
 		desc->environment = env_array_create();
 		opt.get_user_env_time = 0;
