@@ -391,10 +391,10 @@ static int _fill_job_desc_from_opts(job_desc_msg_t *desc)
 	desc->environment = NULL;
 	if (opt.export_file) {
 		desc->environment = env_array_from_file(opt.export_file);
-		env_array_file_merge(&desc->environment, (const char **)environ);
 		if (desc->environment == NULL)
 			exit(1);
-	} else if (opt.export_env == NULL) {
+	}
+	if (opt.export_env == NULL) {
 		env_array_merge(&desc->environment, (const char **)environ);
 	} else if (!strcasecmp(opt.export_env, "ALL")) {
 		env_array_merge(&desc->environment, (const char **)environ);
