@@ -213,14 +213,14 @@ int slurm_step_launch (slurm_step_ctx_t *ctx,
 	if (params->env == NULL) {
 		/* if the user didn't specify an environment, grab the
 		 * environment of the running process */
-		env_array_merge(&env, (const char **)environ, 0);
+		env_array_merge(&env, (const char **)environ);
 	} else {
-		env_array_merge(&env, (const char **)params->env, 0);
+		env_array_merge(&env, (const char **)params->env);
 	}
 	env_array_for_step(&env, ctx->step_resp,
 			   ctx->launch_state->resp_port[0],
 			   params->preserve_env);
-	env_array_merge(&env, (const char **)mpi_env, 0);
+	env_array_merge(&env, (const char **)mpi_env);
 	env_array_free(mpi_env);
 
 	launch.envc = envcount(env);

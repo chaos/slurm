@@ -187,8 +187,15 @@ char **env_array_create(void);
  * is false. If add_env is true, they will be added only if they
  * did not previously exist.
  */
-void env_array_merge(char ***dest_array, const char **src_array,
-		     bool add_env);
+void env_array_merge(char ***dest_array, const char **src_array);
+
+/*
+ * Merge all of the environment variables in src_array into the
+ * array dest_array. Any variables already found in dest_array
+ * will be not be overwritten with the value from src_array 
+ * unless they are SLURM or SBATCH environment variables.
+ */
+void env_array_file_merge(char ***dest_array, const char **src_array);
 
 /*
  * Copy env_array must be freed by env_array_free
