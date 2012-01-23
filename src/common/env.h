@@ -196,14 +196,6 @@ void env_unset_environment(void);
 void env_array_merge(char ***dest_array, const char **src_array);
 
 /*
- * Merge all of the environment variables in src_array into the
- * array dest_array. Any variables already found in dest_array
- * will be not be overwritten with the value from src_array 
- * unless they are SLURM or SBATCH environment variables.
- */
-void env_array_file_merge(char ***dest_array, const char **src_array);
-
-/*
  * Copy env_array must be freed by env_array_free
  */
 char **env_array_copy(const char **array);
