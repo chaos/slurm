@@ -189,9 +189,7 @@ void env_unset_environment(void);
 /*
  * Merge all of the environment variables in src_array into the
  * array dest_array. Any variables already found in dest_array
- * will be overwritten with the value from src_array if add_env 
- * is false. If add_env is true, they will be added only if they
- * did not previously exist.
+ * will be overwritten with the value from src_array.
  */
 void env_array_merge(char ***dest_array, const char **src_array);
 
