@@ -1,6 +1,16 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.1chaos
+=================================
+ -- Do not set MPIRUN_PROCESSES by default in mpi/mvapich. If
+    the env variable SLURM_NEED_MVAPICH_MPIRUN_PROCESSES is set,
+    the old behavior is reinstated. (Fixes BZ#1393)
+ -- Ensure all plugins are called before IO setup in slurmstepd.
+    This ensures secure FS and other possible output locations
+    are prepared before files are opened for IO.
+
+
 * Changes in SLURM 2.3.3
 ========================
  -- Fix task/cgroup plugin error when used with GRES. Patch by Alexander
