@@ -366,10 +366,6 @@ static void _get_process_data(void)
 					MAX(jobacct->min_cpu,
 					    (prec->ssec / hertz +
 					     prec->usec / hertz));
-				debug2("%d mem size %u %u time %u(%u+%u)",
-				       jobacct->pid, jobacct->max_rss,
-				       jobacct->max_vsize, jobacct->tot_cpu,
-				       prec->usec, prec->ssec);
 				break;
 			}
 		}
