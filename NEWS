@@ -1,6 +1,15 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.2chaos
+=================================
+ -- Fix use of srun --exclude when number of nodes requested differs from
+    the number of nodes in NODELIST minus the excluded hosts (BZ#1395).
+ -- Remove useless accounting debug messages.
+ -- Update spank API:
+    - Add spank_option_getopt() call.
+    - Support slurm_spank_job_epilog() and slurm_spank_job_prolog callbacks
+
 * Changes in SLURM 2.3.3-1.1chaos
 =================================
  -- Do not set MPIRUN_PROCESSES by default in mpi/mvapich. If
