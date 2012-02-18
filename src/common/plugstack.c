@@ -924,10 +924,12 @@ static int spank_job_script (step_fn_t fn, uint32_t jobid, uid_t uid)
 	stack = spank_stack_init (S_TYPE_JOB_SCRIPT);
 	if (!stack)
 		return (-1);
+	global_spank_stack = stack;
 
 	rc = _do_call_stack (stack, fn, &jobinfo, -1);
 
 	spank_stack_destroy (stack);
+	global_spank_stack = NULL;
 	return (rc);
 }
 
