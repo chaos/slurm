@@ -1,6 +1,10 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.3chaos
+=================================
+ -- Fix spank_context() in slurm_spank_job_prolog and epilog callbacks.
+
 * Changes in SLURM 2.3.3-1.2chaos
 =================================
  -- Fix use of srun --exclude when number of nodes requested differs from
