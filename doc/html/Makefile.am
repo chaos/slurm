@@ -100,9 +100,6 @@ generated_html = \
 	select_design.html \
 	selectplugins.html \
 	slurm.html \
-	slurm_ug_agenda.html \
-	slurm_ug_cfp.html \
-	slurm_ug_registration.html \
 	sun_const.html \
 	switchplugins.html \
 	taskplugins.html \

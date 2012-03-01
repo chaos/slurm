@@ -72,7 +72,7 @@ in version 2.2).</li>
 <h2><a name="24">Major Updates in SLURM Version 2.4 and beyond</a></h2>
 <p> Detailed plans for release dates and contents of additional SLURM releases
 have not been finalized. Anyone desiring to perform SLURM development should
-notify <a href="mailto:slurm-dev@lists.llnl.gov">slurm-dev@lists.llnl.gov</a>
+notify <a href="mailto:slurm-dev@schedmd.com">slurm-dev@schedmd.com</a>
 to coordinate activities. Future development plans includes:
 <ul>
 <li>Faster and more powerful job step management support  (e.g. step
