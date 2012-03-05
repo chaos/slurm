@@ -152,7 +152,7 @@ resource plug-in and plan to make enhancement the plug-in as we get
 time as well as request from users to help us prioritize the features.
 
 Please send comments and requests about the consumable resources to
-<a href="mailto:slurm-dev@lists.llnl.gov">slurm-dev@lists.llnl.gov</a>.
+<a href="mailto:slurm-dev@schedmd.com">slurm-dev@schedmd.com</a>.
 
 <ol start=1 type=1>
   <li><b>Issue with --max_nodes, --max_sockets_per_node, --max_cores_per_socket and --max_threads_per_core</b></li>
