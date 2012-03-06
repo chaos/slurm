@@ -1,6 +1,11 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.5chaos
+=================================
+ -- Changed SchedMD references in man and web pages back to LLNL
+ -- Fixed the setting of SLURM_SUBMIT_DIR for jobs submitted by Moab (BZ#1467)
+
 * Changes in SLURM 2.3.3-1.4chaos
 =================================
  -- Fix crash in slurmd on missing plugstack.conf (BZ#1441)
