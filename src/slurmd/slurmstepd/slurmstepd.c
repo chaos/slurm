@@ -240,6 +240,11 @@ static int handle_spank_mode (int argc, char *argv[])
 	log_options_t lopts = LOG_OPTS_INITIALIZER;
 
 	/*
+	 *  Not necessary to log to syslog
+	 */
+	lopts.syslog_level = LOG_LEVEL_QUIET;
+
+	/*
 	 *  Make our log prefix into spank-prolog: or spank-epilog:
 	 */
 	strcat (prefix, mode);
