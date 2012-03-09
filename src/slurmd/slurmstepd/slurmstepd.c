@@ -203,6 +203,19 @@ static slurmd_conf_t * read_slurmd_conf_lite (int fd)
 	confl->log_opts.stderr_level = confl->debug_level;
 	confl->log_opts.logfile_level = confl->debug_level;
 	confl->log_opts.syslog_level = confl->debug_level;
+	/*
+	 * If daemonizing, turn off stderr logging -- also, if
+	 * logging to a file, turn off syslog.
+	 *
+	 * Otherwise, if remaining in foreground, turn off logging
+	 * to syslog (but keep logfile level)
+	 */
+	if (confl->daemonize) {
+		confl->log_opts.stderr_level = LOG_LEVEL_QUIET;
+		if (confl->logfile)
+			confl->log_opts.syslog_level = LOG_LEVEL_QUIET;
+	} else
+		confl->log_opts.syslog_level  = LOG_LEVEL_QUIET;
 
 	return (confl);
 rwfail:
@@ -372,19 +385,6 @@ _init_from_slurmd(int sock, char **argv,
 	/* receive conf from slurmd */
 	if ((conf = read_slurmd_conf_lite (sock)) == NULL)
 		fatal("Failed to read conf from slurmd");
-	/*
-	 * If daemonizing, turn off stderr logging -- also, if
-	 * logging to a file, turn off syslog.
-	 *
-	 * Otherwise, if remaining in foreground, turn off logging
-	 * to syslog (but keep logfile level)
-	 */
-	if (conf->daemonize) {
-		conf->log_opts.stderr_level = LOG_LEVEL_QUIET;
-		if (conf->logfile)
-			conf->log_opts.syslog_level = LOG_LEVEL_QUIET;
-	} else
-		conf->log_opts.syslog_level  = LOG_LEVEL_QUIET;
 	log_alter(conf->log_opts, 0, conf->logfile);
 
 	debug2("debug level is %d.", conf->debug_level);
