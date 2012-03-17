@@ -1,6 +1,12 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.7chaos
+=================================
+ -- cgroup: Remove job step memcgs at job step completion
+ -- cgroup: Do not call force_empty on job step memcg at completion.
+     (This avoids clearing clean page cache pages after each job step.)
+
 * Changes in SLURM 2.3.3-1.6chaos
 =================================
  -- Fully fix BZ#1464: do not send spank prolog/epilog messages to syslog
