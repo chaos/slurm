@@ -2127,6 +2127,13 @@ static bool _opt_verify(void)
 	bool verified = true;
 	char *dist = NULL, *lllp_dist = NULL;
 
+	/*
+	 * if the environment is coming from a file, the
+	 * environment at execution startup, must be unset.
+	 */
+	if (opt.export_file != NULL)
+		env_unset_environment();
+
 	if (opt.quiet && opt.verbose) {
 		error ("don't specify both --verbose (-v) and --quiet (-Q)");
 		verified = false;
