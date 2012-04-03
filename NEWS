@@ -1,6 +1,11 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.8chaos
+=================================
+ -- Fix BZ#1540: SLURM_JOB_NAME not being set for msub submitted jobs.
+ -- Remove double newlines from some slurmd log messages.
+
 * Changes in SLURM 2.3.3-1.7chaos
 =================================
  -- cgroup: Remove job step memcgs at job step completion
