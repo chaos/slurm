@@ -3789,7 +3789,7 @@ run_spank_job_script (const char *mode, char **env)
 #else
                 setpgrp();
 #endif
-		info ("Calling %s %s %s\n", argv[0], argv[1], argv[2]);
+		info ("Calling %s %s %s", argv[0], argv[1], argv[2]);
 		execve (argv[0], argv, env);
 		error ("execve: %m");
 		exit (127);
@@ -3798,7 +3798,7 @@ run_spank_job_script (const char *mode, char **env)
 	close (pfds[0]);
 
 	if (_send_slurmd_conf_lite (pfds[1], conf) < 0)
-		error ("Failed to send slurmd conf to slurmstepd\n");
+		error ("Failed to send slurmd conf to slurmstepd");
 	close (pfds[1]);
 
 	/*
