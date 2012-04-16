@@ -504,10 +504,11 @@ int xcgroup_load(xcgroup_ns_t* cgns, xcgroup_t* cg, char* uri)
 
 int xcgroup_delete(xcgroup_t* cg)
 {
-	if (rmdir(cg->path))
+	if (rmdir(cg->path) < 0) {
+		verbose ("xcgroup: rmdir(%s): %m", cg->path);
 		return XCGROUP_ERROR;
-	else
-		return XCGROUP_SUCCESS;
+	}
+	return XCGROUP_SUCCESS;
 }
 
 int xcgroup_add_pids(xcgroup_t* cg, pid_t* pids, int npids)
