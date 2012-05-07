@@ -3,6 +3,14 @@ documents those changes that are of interest to users and admins.
 
 * Changes in SLURM 2.3.3-1.8chaos
 =================================
+ -- Fix BZ#1608: Moab queued job priorities change with controller restart.
+ -- Fix BZ#1543: SLURM allows users to extend EndTime of their running jobs.
+ -- Fix sched/wiki2 to handle embedded '#' char in job record fields.
+ -- Fix segv in slurmctld when using -r, --relative option for job steps.
+ -- Report rmdir(2) errors in cgroup module (debug for BZ#1565)
+
+* Changes in SLURM 2.3.3-1.8chaos
+=================================
  -- Fix BZ#1540: SLURM_JOB_NAME not being set for msub submitted jobs.
  -- Remove double newlines from some slurmd log messages.
 
