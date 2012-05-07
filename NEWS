@@ -1,7 +1,7 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
-* Changes in SLURM 2.3.3-1.8chaos
+* Changes in SLURM 2.3.3-1.9chaos
 =================================
  -- Fix BZ#1608: Moab queued job priorities change with controller restart.
  -- Fix BZ#1543: SLURM allows users to extend EndTime of their running jobs.
