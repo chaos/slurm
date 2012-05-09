@@ -186,6 +186,7 @@ static bool _step_is_starting(uint32_t job_id, uint32_t step_id);
 static void _add_job_running_prolog(uint32_t job_id);
 static void _remove_job_running_prolog(uint32_t job_id);
 static void _wait_for_job_running_prolog(uint32_t job_id);
+static int  _prolog_is_running (uint32_t jobid);
 
 /*
  *  List of threads waiting for jobs to complete
@@ -4419,15 +4420,22 @@ static int _find_uint32 (uint32_t *x, uint32_t *y)
 	return (*x == *y);
 }
 
+static int _prolog_is_running (uint32_t jobid)
+{
+	int rc = 0;
+	if (list_find_first (conf->prolog_running_jobs,
+	                     (ListFindF) _find_uint32, &jobid))
+		rc = 1;
+	return (rc);
+}
+
 /* Wait for the job's prolog to complete */
 static void _wait_for_job_running_prolog(uint32_t job_id)
 {
 	debug( "Waiting for job %d's prolog to complete", job_id);
 	slurm_mutex_lock(&conf->prolog_running_lock);
 
-	while (list_find_first( conf->prolog_running_jobs,
-		                (ListFindF) _find_uint32,
-	                        &job_id) ) {
+	while (_prolog_is_running (job_id)) {
 		pthread_cond_wait(&conf->prolog_running_cond,
 				  &conf->prolog_running_lock);
 	}
