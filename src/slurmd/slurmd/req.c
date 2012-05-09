@@ -185,7 +185,6 @@ static bool _step_is_starting(uint32_t job_id, uint32_t step_id);
 
 static void _add_job_running_prolog(uint32_t job_id);
 static void _remove_job_running_prolog(uint32_t job_id);
-static int  _compare_job_running_prolog(void *s0, void *s1);
 static void _wait_for_job_running_prolog(uint32_t job_id);
 
 /*
@@ -4415,12 +4414,9 @@ static void _remove_job_running_prolog(uint32_t job_id)
 	slurm_mutex_unlock(&conf->prolog_running_lock);
 }
 
-static int _compare_job_running_prolog(void *listentry, void *key)
+static int _find_uint32 (uint32_t *x, uint32_t *y)
 {
-	uint32_t *job0 = (uint32_t *)listentry;
-	uint32_t *job1 = (uint32_t *)key;
-
-	return (*job0 == *job1);
+	return (*x == *y);
 }
 
 /* Wait for the job's prolog to complete */
@@ -4430,9 +4426,8 @@ static void _wait_for_job_running_prolog(uint32_t job_id)
 	slurm_mutex_lock(&conf->prolog_running_lock);
 
 	while (list_find_first( conf->prolog_running_jobs,
-				&_compare_job_running_prolog,
-				&job_id )) {
-
+		                (ListFindF) _find_uint32,
+	                        &job_id) ) {
 		pthread_cond_wait(&conf->prolog_running_cond,
 				  &conf->prolog_running_lock);
 	}
