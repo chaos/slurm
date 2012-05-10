@@ -5,6 +5,9 @@ documents those changes that are of interest to users and admins.
 ========================
  -- Prevent background salloc disconnecting terminal at termination. Patch by
     Don Albert, Bull.
+ -- Fix for HTC with --reboot on BG/P systems
+ -- Recalculate job priority of a dependent job when all dependencies are
+    released.
 
 * Changes in SLURM 2.2.7
 ========================
