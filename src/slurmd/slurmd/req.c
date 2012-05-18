@@ -960,6 +960,14 @@ _rpc_launch_tasks(slurm_msg_t *msg)
 
 #ifndef HAVE_FRONT_END
 	first_job_run = !slurm_cred_jobid_cached(conf->vctx, req->job_id);
+	/*
+	 *  Do not launch a new job step while prolog in progress:
+	 */
+	if (_prolog_is_running (req->job_id)) {
+		info ("[job %u] prolog in progress\n", req->job_id);
+		errnum = EINPROGRESS;
+		goto done;
+	}
 #endif
 	if (_check_job_credential(req, req_uid, nodeid, &step_hset) < 0) {
 		errnum = errno;
@@ -971,6 +979,7 @@ _rpc_launch_tasks(slurm_msg_t *msg)
 #ifndef HAVE_FRONT_END
 	if (first_job_run) {
 		int rc;
+
 		rc =  _run_prolog(req->job_id, req->uid, NULL,
 				  req->spank_job_env, req->spank_job_env_size);
 		if (rc) {
@@ -1238,6 +1247,14 @@ _rpc_batch_job(slurm_msg_t *msg)
 
 	if ((req->step_id != SLURM_BATCH_SCRIPT) && (req->step_id != 0))
 		first_job_run = false;
+	/*
+	 *  Do not launch a new batch job while prolog in progress:
+	 */
+	if (_prolog_is_running (req->job_id)) {
+		info ("[job %u] prolog running", req->job_id);
+		rc = EINPROGRESS;
+		goto done;
+	}
 
 	/*
 	 * Insert jobid into credential context to denote that
@@ -1273,6 +1290,7 @@ _rpc_batch_job(slurm_msg_t *msg)
 		resv_id = select_g_select_jobinfo_xstrdup(req->select_jobinfo,
 					    SELECT_PRINT_RESV_ID);
 #endif
+
 		rc = _run_prolog(req->job_id, req->uid, resv_id,
 				 req->spank_job_env, req->spank_job_env_size);
 		xfree(resv_id);
