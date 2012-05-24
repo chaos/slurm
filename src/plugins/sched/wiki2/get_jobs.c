@@ -339,6 +339,11 @@ static char *	_dump_job(struct job_record *job_ptr, time_t update_time)
 		xstrcat(buf, tmp);
 	}
 
+	if (job_ptr->resp_host) {
+		snprintf(tmp, sizeof(tmp),"SUBMITHOST=\"%s\";", job_ptr->resp_host);
+		xstrcat(buf, tmp);
+	}
+
 	if (job_ptr->wckey) {
 		snprintf(tmp, sizeof(tmp),"WCKEY=\"%s\";", job_ptr->wckey);
 		xstrcat(buf, tmp);
