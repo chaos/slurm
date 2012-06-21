@@ -1,6 +1,15 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.10chaos
+==================================
+ -- Fix BZ#1565: slurmd "Unable to destroy container" when cgroup deleted
+ -- Fix BZ#1634: Failure to clean up after overcommit failure
+ -- Do not allow slurmd to launch job steps or signal step tasks during prolog
+     (partial fix for BZ#1613)
+ -- Reduce file descriptor usage during slurmstepd task launch
+     (prevent "child fork: Too many open files" from BZ#1613)
+
 * Changes in SLURM 2.3.3-1.9chaos
 =================================
  -- Fix BZ#1608: Moab queued job priorities change with controller restart.
