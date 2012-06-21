@@ -2548,7 +2548,7 @@ int slurm_receive_msg_and_forward(slurm_fd_t fd, slurm_addr_t *orig_addr,
 
 	/* Forward message to other nodes */
 	if (header.forward.cnt > 0) {
-		debug("forwarding to %u", header.forward.cnt);
+		debug("forwarding to %u: %s", header.forward.cnt, header.forward.nodelist);
 		msg->forward_struct = xmalloc(sizeof(forward_struct_t));
 		slurm_mutex_init(&msg->forward_struct->forward_mutex);
 		pthread_cond_init(&msg->forward_struct->notify, NULL);
