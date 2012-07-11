@@ -1,6 +1,11 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.11chaos
+==================================
+ -- Fix BZ#1649: Nodes hang in comp state after job completes
+    (Fixes potential deadlock in spank job prolog/epilog)
+
 * Changes in SLURM 2.3.3-1.10chaos
 ==================================
  -- Fix BZ#1565: slurmd "Unable to destroy container" when cgroup deleted
