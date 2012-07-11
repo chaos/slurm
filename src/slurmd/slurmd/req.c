@@ -3795,6 +3795,8 @@ run_spank_job_script (const char *mode, char **env)
 
 	fd_set_close_on_exec (pfds[1]);
 
+	info ("Calling %s spank %s", conf->stepd_loc, mode);
+
 	if ((cpid = fork ()) < 0) {
 		error ("executing spank %s: %m", mode);
 		return (-1);
@@ -3814,7 +3816,6 @@ run_spank_job_script (const char *mode, char **env)
 #else
                 setpgrp();
 #endif
-		info ("Calling %s %s %s", argv[0], argv[1], argv[2]);
 		execve (argv[0], argv, env);
 		error ("execve: %m");
 		exit (127);
