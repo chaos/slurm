@@ -830,6 +830,14 @@ Used to identify ports used by OpenMPI only and the input format is
 "ports=12000\-12999" to identify a range of communication ports to be used.
 
 .TP
+\fBMungeSocket\fR
+Used for Munge authentication when a socket other than the defaault is
+needed. In the case of use with A Moab slaveless grid, authentication can
+be configured to use a MUNGE daemon specifically configured to provide
+authentication between clusters, while the default MUNGE daemon provides
+authentication within a cluster. The default value is NULL.
+
+.TP
 \fBOverTimeLimit\fR
 Number of minutes by which a job can exceed its time limit before
 being canceled.
