@@ -835,7 +835,8 @@ Used for Munge authentication when a socket other than the defaault is
 needed. In the case of use with A Moab slaveless grid, authentication can
 be configured to use a MUNGE daemon specifically configured to provide
 authentication between clusters, while the default MUNGE daemon provides
-authentication within a cluster. The default value is NULL.
+authentication within a cluster. If not set, the default munge socket is
+used.
 
 .TP
 \fBOverTimeLimit\fR
