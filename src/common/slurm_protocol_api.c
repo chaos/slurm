@@ -89,6 +89,7 @@ static slurm_protocol_config_t *proto_conf = &proto_conf_default;
 static int message_timeout = -1;
 
 /* STATIC FUNCTIONS */
+static char *_get_munge_socket(void);
 static char *_global_auth_key(void);
 static void  _remap_slurmctld_errno(void);
 static int   _unpack_msg_uid(Buf buffer);
@@ -1236,6 +1237,28 @@ char *slurm_get_accounting_storage_pass(void)
 	return storage_pass;
 }
 
+/* _get_munge_socket
+ * returns the munge socket from slurmctld_conf object
+ * cache value in local buffer for best performance
+ * RET char *    - munge socket 
+ */
+static char *_get_munge_socket(void)
+{
+	static bool loaded_munge_socket = false;
+	static char *munge_socket = NULL;
+	slurm_ctl_conf_t *conf;
+
+	if (loaded_munge_socket)
+		return munge_socket;
+
+	conf = slurm_conf_lock();
+	munge_socket = xstrdup(conf->munge_socket);
+	slurm_conf_unlock();
+
+	loaded_munge_socket = true;
+	return munge_socket;
+}
+
 /* _global_auth_key
  * returns the storage password from slurmctld_conf or slurmdbd_conf object
  * cache value in local buffer for best performance
@@ -2192,6 +2215,9 @@ int slurm_receive_msg(slurm_fd_t fd, slurm_msg_t *msg, int timeout)
 	if (header.flags & SLURM_GLOBAL_AUTH_KEY) {
 		rc = g_slurm_auth_verify( auth_cred, NULL, 2,
 					  _global_auth_key() );
+	} else if (_get_munge_socket() != NULL) {
+		rc = g_slurm_auth_verify( auth_cred, NULL, 2,
+					  _get_munge_socket() );
 	} else
 		rc = g_slurm_auth_verify( auth_cred, NULL, 2, NULL );
 
@@ -2359,6 +2385,9 @@ List slurm_receive_msgs(slurm_fd_t fd, int steps, int timeout)
 	if (header.flags & SLURM_GLOBAL_AUTH_KEY) {
 		rc = g_slurm_auth_verify( auth_cred, NULL, 2,
 					  _global_auth_key() );
+	} else if (_get_munge_socket() != NULL) {
+		rc = g_slurm_auth_verify( auth_cred, NULL, 2,
+					  _get_munge_socket() );
 	} else
 		rc = g_slurm_auth_verify( auth_cred, NULL, 2, NULL );
 
@@ -2589,6 +2618,9 @@ int slurm_receive_msg_and_forward(slurm_fd_t fd, slurm_addr_t *orig_addr,
 	if (header.flags & SLURM_GLOBAL_AUTH_KEY) {
 		rc = g_slurm_auth_verify( auth_cred, NULL, 2,
 					  _global_auth_key() );
+	} else if (_get_munge_socket() != NULL) {
+		rc = g_slurm_auth_verify( auth_cred, NULL, 2,
+					  _get_munge_socket() );
 	} else
 		rc = g_slurm_auth_verify( auth_cred, NULL, 2, NULL );
 
@@ -2680,6 +2712,8 @@ int slurm_send_node_msg(slurm_fd_t fd, slurm_msg_t * msg)
 	 */
 	if (msg->flags & SLURM_GLOBAL_AUTH_KEY)
 		auth_cred = g_slurm_auth_create(NULL, 2, _global_auth_key());
+	else if (_get_munge_socket() != NULL)
+		auth_cred = g_slurm_auth_create(NULL, 2, _get_munge_socket());
 	else
 		auth_cred = g_slurm_auth_create(NULL, 2, NULL);
 	if (auth_cred == NULL) {
