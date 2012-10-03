@@ -154,6 +154,10 @@ static jobcomp_job_rec_t *_parse_line(List job_info_list)
 			job->state = xstrdup(jobcomp_info->val);
 		} else if(!strcasecmp("Timelimit", jobcomp_info->name)) {
 			job->timelimit = xstrdup(jobcomp_info->val);
+		} else if(!strcasecmp("WorkDir", jobcomp_info->name)) {
+			; /* placeholder for future use. */
+		} else if(!strcasecmp("ProcCnt", jobcomp_info->name)) {
+			; /* placeholder for future use. */
 		}
 #ifdef HAVE_BG
 		else if(!strcasecmp("MaxProcs", jobcomp_info->name)) {
