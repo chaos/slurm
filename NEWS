@@ -1,6 +1,13 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.12chaos
+==================================
+ -- Add MungeSocket parameter to slurm.conf.
+ -- Fix Perl API handling of nodes in hidden partitions with load_node().
+ -- Fix BZ#1832: sacct(1) parsing errors for WorkDir and ProcCmd.
+ -- Enable slurm-debuginfo package.
+
 * Changes in SLURM 2.3.3-1.11chaos
 ==================================
  -- Fix BZ#1649: Nodes hang in comp state after job completes
