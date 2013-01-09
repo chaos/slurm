@@ -8,6 +8,11 @@ documents those changes that are of interest to users and admins.
  -- Fix for HTC with --reboot on BG/P systems
  -- Recalculate job priority of a dependent job when all dependencies are
     released.
+ -- Pulled in some v2.5 patches to fix two scheduling bugs:
+      The time limit of backfilled jobs would be reduced to 1 minute
+      Standby jobs would not be scheduled if their time limit would delay the
+        start of a higher priority job
+
 
 * Changes in SLURM 2.2.7
 ========================
