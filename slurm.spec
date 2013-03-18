@@ -170,10 +170,7 @@ partition management, job management, scheduling and accounting modules.
 #  parallel debugging capability
 #
 %define __os_install_post /usr/lib/rpm/brp-compress
-#
-# However, it should be ok to still build debuginfo package:
-#
-# % define debug_package %{nil}
+%define debug_package %{nil}
 
 #
 # Should unpackaged files in a build root terminate a build?
