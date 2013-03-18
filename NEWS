@@ -1,6 +1,12 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.13chaos
+==================================
+ -- Revert change to enable debuginfo packages. This breaks TotalView
+     because there is no way to generate debuginfo packages without
+     removing all debug symbols. (Fixes TOSS-1964).
+
 * Changes in SLURM 2.3.3-1.12chaos
 ==================================
  -- Add MungeSocket parameter to slurm.conf.
