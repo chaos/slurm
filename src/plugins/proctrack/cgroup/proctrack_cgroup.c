@@ -276,8 +276,25 @@ int _slurm_cgroup_create(slurmd_job_t *job, uint64_t id, uid_t uid, gid_t gid)
 	return SLURM_SUCCESS;
 }
 
+static int _move_current_to_root_cgroup(xcgroup_ns_t *ns)
+{
+	xcgroup_t cg;
+
+	if (xcgroup_create(ns, &cg, "", 0, 0) != XCGROUP_SUCCESS)
+		return SLURM_ERROR;
+
+	return xcgroup_move_process(&cg, getpid());
+}
+
 int _slurm_cgroup_destroy(void)
 {
+	/*
+	 *  First move slurmstepd process to the root cgroup, otherwise
+	 *   the rmdir(2) triggered by the calls below will always fail,
+	 *   because slurmstepd is still in the cgroup!
+	 */
+	_move_current_to_root_cgroup(&freezer_ns);
+
 	if (jobstep_cgroup_path[0] != '\0') {
 		if ( xcgroup_delete(&step_freezer_cg) != XCGROUP_SUCCESS )
 			return SLURM_ERROR;
