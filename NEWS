@@ -1,6 +1,11 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.14chaos
+==================================
+ -- Fix TOSS-1979: freezer cgroup directories remain after job completes.
+ -- Fix spank_option_getopt() for srun, sbatch, and salloc.
+
 * Changes in SLURM 2.3.3-1.13chaos
 ==================================
  -- Revert change to enable debuginfo packages. This breaks TotalView
