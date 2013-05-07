@@ -1,6 +1,10 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.15chaos
+==================================
+ -- Fix TOSS-1683: slurmctld errors for completing jobs after a logrotate
+
 * Changes in SLURM 2.3.3-1.14chaos
 ==================================
  -- Fix TOSS-1979: freezer cgroup directories remain after job completes.

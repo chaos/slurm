@@ -696,10 +696,6 @@ int read_slurm_conf(int recover, bool reconfig)
 	START_TIMER;
 
 	if (reconfig) {
-		/* in order to re-use job state information,
-		 * update nodes_completing string (based on node_bitmap) */
-		update_job_nodes_completing();
-
 		/* save node and partition states for reconfig RPC */
 		old_node_record_count = node_record_count;
 		old_node_table_ptr    = node_record_table_ptr;
