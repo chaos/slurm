@@ -856,6 +856,40 @@ extern void print_job_dependency(struct job_record *job_ptr)
 }
 
 /*
+ * Remove a dependency from within the job dependency string.
+ */
+static void _remove_dependency(char **input, int job_id)
+{
+	int i, j, k, l, len, savepos = 0;
+	char *ajob_id, *in = *input;
+
+	len = strlen(in);
+	ajob_id = xmalloc(len + 1);
+
+	for (i=0,j=0,k=0,l=0; i <= len; i++) {
+		in[k++] = in[i];
+		if (in[i] == ':') {
+			l = 1;
+			continue;
+		}
+		if (in[i] == ',') {
+			l = 0; j = 0;
+			if (atoi(ajob_id) == job_id)
+				k = savepos;
+			savepos = i+1;
+			memset (ajob_id, 0, sizeof(ajob_id));
+			continue;
+		}
+		if (l)
+			ajob_id[j++] =in[i];
+	}
+	if (atoi(ajob_id) == job_id)
+		in[savepos-1] = '\0';
+
+	xfree(ajob_id);
+}
+
+/*
  * Determine if a job's dependencies are met
  * RET: 0 = no dependencies
  *      1 = dependencies remain
@@ -963,11 +997,8 @@ extern int test_job_dependency(struct job_record *job_ptr)
 		} else
 			failure = true;
 		if (clear_dep) {
-			char *rmv_dep = xstrdup_printf(
-				":%u", dep_ptr->job_ptr->job_id);
-			xstrsubstitute(job_ptr->details->dependency,
-				       rmv_dep, "");
-			xfree(rmv_dep);
+			_remove_dependency(&job_ptr->details->dependency,
+					   dep_ptr->job_ptr->job_id);
 			list_delete_item(depend_iter);
 		}
 	}
