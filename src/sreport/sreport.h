@@ -103,6 +103,7 @@ extern slurmdb_report_sort_t sort_flag;
 extern void slurmdb_report_print_time(print_field_t *field,
 			       uint64_t value, uint64_t total_time, int last);
 extern int parse_option_end(char *option);
+extern time_t sanity_check_endtime(time_t endtime);
 extern char *strip_quotes(char *option, int *increased);
 extern int sort_user_dec(slurmdb_report_user_rec_t *user_a,
 			 slurmdb_report_user_rec_t *user_b);
