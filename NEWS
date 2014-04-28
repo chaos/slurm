@@ -1,13 +1,16 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.17chaos
+==================================
+ -- Modified the mpi/mvapich plugin to use MUNGE.  New mvapich version is 9.
+
 * Changes in SLURM 2.3.3-1.16chaos
 ==================================
  -- Remove afterany, etc. vestiges from the dependency string once the
     associated job completes.  This fixes Moab's dependency behavior.
  -- If a user runs sreport and specifies a time period that stretches
     into the future, set the end of the period to the current time.
- -- Modified the mpi/mvapich plugin to use MUNGE.  New mvapich version is 9.
 
 * Changes in SLURM 2.3.3-1.15chaos
 ==================================
