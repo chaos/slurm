@@ -1,7 +1,7 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
-* Changes in SLURM 2.3.3-1.17chaos
+* Changes in SLURM 2.3.3-1.18chaos
 ==================================
  -- Modified the mpi/mvapich plugin to use MUNGE.  New mvapich version is 9.
 
