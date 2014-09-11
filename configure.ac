@@ -395,6 +395,7 @@ AC_CONFIG_FILES([Makefile
 		 contribs/phpext/slurm_php/config.m4
 		 contribs/sjobexit/Makefile
 		 contribs/slurmdb-direct/Makefile
+		 contribs/pmi2/Makefile
 		 src/Makefile
 		 src/api/Makefile
 		 src/common/Makefile
@@ -512,6 +513,7 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/mpi/lam/Makefile
 		 src/plugins/mpi/none/Makefile
 		 src/plugins/mpi/openmpi/Makefile
+		 src/plugins/mpi/pmi2/Makefile
 		 src/plugins/task/Makefile
 		 src/plugins/task/affinity/Makefile
 		 src/plugins/task/cgroup/Makefile

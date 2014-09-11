@@ -102,6 +102,12 @@ static int  shutdown_timeout;   /* Num secs for main thread to wait for
 static pthread_mutex_t shutdown_lock;
 static pthread_cond_t  shutdown_cond;
 
+int p_mpi_hook_slurmstepd_prefork(const slurmd_job_t *job,
+				  char ***env)
+{
+	debug("Using mpi/mpich1_p4");
+	return SLURM_SUCCESS;
+}
 
 int p_mpi_hook_slurmstepd_task (const mpi_plugin_client_info_t *job,
 				char ***env)
