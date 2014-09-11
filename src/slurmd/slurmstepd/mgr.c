@@ -974,6 +974,14 @@ job_manager(slurmd_job_t *job)
 		goto fail2;
 	}
 
+        /* ATM: add to support PMI2 */
+	/* fork necessary threads for MPI */
+	if (mpi_hook_slurmstepd_prefork(job, &job->env) != SLURM_SUCCESS) {
+		error("Failed mpi_hook_slurmstepd_prefork");
+		rc = SLURM_FAILURE;
+		goto fail2;
+	}
+
 	/* calls pam_setup() and requires pam_finish() if successful */
 	if ((rc = _fork_all_tasks(job,&io_initialized)) < 0) {
 		debug("_fork_all_tasks failed");
