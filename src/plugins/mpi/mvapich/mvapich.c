@@ -1238,6 +1238,7 @@ mvapich_print_abort_message (mvapich_state_t *st, int rank,
 			     int dest, char *msg, int msglen)
 {
 	slurm_step_layout_t *sl = st->job->step_layout;
+	int i;
 	char *host;
 	char *msgstr;
 	char time_stamp[256];
@@ -1254,6 +1255,16 @@ mvapich_print_abort_message (mvapich_state_t *st, int rank,
 		 */
 		if (msg [msglen - 1] == '\n')
 			msg [msglen - 1] = '\0';
+
+		/*
+		 *  Replace internal newlines with periods.  We want
+		 *  the full message to be written as a single line
+		 *  to the syslog.
+		 */
+		for (i = 0; i < msglen; i++) {
+			if (msg [i] == '\n')
+				msg [i] = '.';
+		}
 
 		msgstr = msg;
 	}
@@ -1409,8 +1420,31 @@ static void mvapich_wait_for_abort(mvapich_state_t *st)
 			dst = ranks[0];
 			src = ranks[1];
 			fd_read_n (newfd, &msglen, sizeof (int));
-			if (msglen)
+			if (msglen > 0) {
+				/*
+				 * Ensure that we don't overrun our buffer.
+				 */
+				if (msglen > sizeof(msg) - 1)
+					msglen = sizeof(msg) - 1;
+				
 				fd_read_n (newfd, msg, msglen);
+				
+				/*
+				 * Ensure that msg ends with a NULL.
+				 * Note that msglen is at most sizeof(msg)-1
+				 * due to code above.
+				 */
+				msg [ msglen ] = '\0';
+			} else {
+				/*
+				 * We read in a zero or negative message length.
+				 * Set msglen to 0 to indicate that we didn't
+				 * read any message string and ensure msg is
+				 * the empty string.
+				 */
+				msglen = 0;
+				msg [ msglen ] = '\0';
+			}
 		} else {
 			src = ranks[0];
 			dst = -1;
