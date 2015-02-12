@@ -1,6 +1,11 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.20chaos
+==================================
+ -- Fix slicing of the pty column and row fields
+ -- Add missing #include to run_script.c to squelch compile warning
+
 * Changes in SLURM 2.3.3-1.19chaos
 ==================================
  -- remove newlines in mvapich abort message before writing to syslog

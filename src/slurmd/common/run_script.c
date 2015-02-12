@@ -44,6 +44,7 @@
 #include <sys/wait.h>
 #include <sys/errno.h>
 #include <string.h>
+#include <poll.h>
 
 #include "src/common/xmalloc.h"
 #include "src/common/xstring.h"
