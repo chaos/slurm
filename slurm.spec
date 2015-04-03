@@ -430,6 +430,7 @@ install -D -m755 contribs/sjstat ${RPM_BUILD_ROOT}%{_bindir}/sjstat
 
 # Delete unpackaged files:
 rm -f $RPM_BUILD_ROOT/%{_libdir}/libpmi.a
+rm -f $RPM_BUILD_ROOT/%{_libdir}/libpmi2.a
 rm -f $RPM_BUILD_ROOT/%{_libdir}/libslurm.a
 rm -f $RPM_BUILD_ROOT/%{_libdir}/libslurmdb.a
 rm -f $RPM_BUILD_ROOT/%{_libdir}/slurm/*.{a,la}
@@ -612,6 +613,7 @@ rm -rf $RPM_BUILD_ROOT
 %dir %attr(0755,root,root) %{_prefix}/include/slurm
 %{_prefix}/include/slurm/*
 %{_libdir}/libpmi.la
+%{_libdir}/libpmi2.la
 %{_libdir}/libslurm.la
 %{_libdir}/libslurmdb.la
 %{_mandir}/man3/slurm_*
