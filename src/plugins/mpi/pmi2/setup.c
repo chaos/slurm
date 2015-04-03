@@ -93,7 +93,7 @@ _remove_tree_sock(void)
 }
 
 static int
-_setup_stepd_job_info(const mpi_plugin_task_info_t *job, char ***env)
+_setup_stepd_job_info(const slurmd_job_t *job, char ***env)
 {
 	char *p;
 	int i;
@@ -105,19 +105,12 @@ _setup_stepd_job_info(const mpi_plugin_task_info_t *job, char ***env)
 	job_info.nnodes = job->nnodes;
 	job_info.nodeid = job->nodeid;
 	job_info.ntasks = job->ntasks;
-// ATM: use ltasks in mpi_plugin struct instead of node_tasks from stepd_step_rec_t
-//	job_info.ltasks = job->node_tasks;
-	job_info.ltasks = job->ltasks;
-	job_info.gtids = xmalloc(job->ltasks * sizeof(uint32_t));
-	for (i = 0; i < job->ltasks; i ++) {
-		// ATM: can't do this here w/o stepd_step_recv_t,
-		// initialize to -1 for now and then we'll grab
-		// these later in p_mpi_hook_slurmstepd_task
-		//job_info.gtids[i] = job->task[i]->gtid;
-		job_info.gtids[i] = -1;
+	job_info.ltasks = job->node_tasks;
+	job_info.gtids = xmalloc(job->node_tasks * sizeof(uint32_t));
+	for (i = 0; i < job->node_tasks; i ++) {
+		job_info.gtids[i] = job->task[i]->gtid;
 	}
-// ATM: this doesn't exist in mpi_plugin_task_info_t, but we don't seem to need it
-//	job_info.switch_job = (void*)job->switch_job;
+	job_info.switch_job = (void*)job->switch_job;
 
 	p = getenvp(*env, PMI2_PMI_DEBUGGED_ENV);
 	if (p) {
@@ -295,7 +288,7 @@ reverse_tree_info(int rank, int num_nodes, int width,
 /* ATM: above is cut-and-paste from src/slurmd/common/reverse_tree_math.c */
 
 static int
-_setup_stepd_tree_info(const mpi_plugin_task_info_t *job, char ***env)
+_setup_stepd_tree_info(const slurmd_job_t *job, char ***env)
 {
 	hostlist_t hl;
 	char srun_host[64];
@@ -376,7 +369,7 @@ _setup_stepd_tree_info(const mpi_plugin_task_info_t *job, char ***env)
  * setup sockets for slurmstepd
  */
 static int
-_setup_stepd_sockets(const mpi_plugin_task_info_t *job, char ***env)
+_setup_stepd_sockets(const slurmd_job_t *job, char ***env)
 {
 	struct sockaddr_un sa;
 	int i;
@@ -408,10 +401,8 @@ _setup_stepd_sockets(const mpi_plugin_task_info_t *job, char ***env)
 	strncpy(tree_sock_addr, sa.sun_path, 128);
 	atexit(_remove_tree_sock);
 
-// ATM use ltasks instead of node_tasks
-//	task_socks = xmalloc(2 * job->node_tasks * sizeof(int));
-	task_socks = xmalloc(2 * job->ltasks * sizeof(int));
-	for (i = 0; i < job->ltasks; i ++) {
+	task_socks = xmalloc(2 * job->node_tasks * sizeof(int));
+	for (i = 0; i < job->node_tasks; i ++) {
 		socketpair(AF_UNIX, SOCK_STREAM, 0, &task_socks[i * 2]);
 		/* this must be delayed after the tasks have been forked */
 /* 		close(TASK_PMI_SOCK(i)); */
@@ -420,7 +411,7 @@ _setup_stepd_sockets(const mpi_plugin_task_info_t *job, char ***env)
 }
 
 static int
-_setup_stepd_kvs(const mpi_plugin_task_info_t *job, char ***env)
+_setup_stepd_kvs(const slurmd_job_t *job, char ***env)
 {
 	int rc = SLURM_SUCCESS, i = 0, pp_cnt = 0;
 	char *p, env_key[32], *ppkey, *ppval;
@@ -463,7 +454,7 @@ _setup_stepd_kvs(const mpi_plugin_task_info_t *job, char ***env)
 }
 
 extern int
-pmi2_setup_stepd(const mpi_plugin_task_info_t *job, char ***env)
+pmi2_setup_stepd(const slurmd_job_t *job, char ***env)
 //pmi2_setup_stepd(const stepd_step_rec_t *job, char ***env)
 {
 	int rc;
