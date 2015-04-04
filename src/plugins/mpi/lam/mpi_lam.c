@@ -80,6 +80,13 @@ const char plugin_name[]        = "mpi LAM plugin";
 const char plugin_type[]        = "mpi/lam";
 const uint32_t plugin_version   = 100;
 
+int p_mpi_hook_slurmstepd_prefork(const slurmd_job_t *job,
+				  char ***env)
+{
+	debug("Using mpi/lam");
+	return SLURM_SUCCESS;
+}
+
 int p_mpi_hook_slurmstepd_task(const mpi_plugin_task_info_t *job,
 			       char ***env)
 {
