@@ -81,6 +81,13 @@ const char plugin_name[]        = "mpi MPICH-GM plugin";
 const char plugin_type[]        = "mpi/mpichgm";
 const uint32_t plugin_version   = 100;
 
+int p_mpi_hook_slurmstepd_prefork(const slurmd_job_t *job,
+				  char ***env)
+{
+	debug("Using mpi/mpich-gm");
+	return SLURM_SUCCESS;
+}
+
 int p_mpi_hook_slurmstepd_task(const mpi_plugin_task_info_t *job,
 			       char ***env)
 {
