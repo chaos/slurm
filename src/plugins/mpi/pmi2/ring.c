@@ -173,7 +173,7 @@ static int pmix_stepd_send(const char* buf, uint32_t size, int rank)
 	char* host = hostlist_nth(pmix_stepd_hostlist, rank); /* strdup-ed */
 
 	/* send message */
-	rc = slurm_forward_data(host, tree_sock_addr, size, buf);
+	rc = slurm_forward_data(host, tree_sock_addr, size, (char*) buf);
 
 	/* free host name */
 	free(host); /* strdup-ed */
