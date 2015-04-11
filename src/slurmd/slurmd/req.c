@@ -82,11 +82,11 @@
 #include "src/common/plugstack.h"
 
 #include "src/slurmd/slurmd/slurmd.h"
-#include "src/slurmd/slurmd/reverse_tree_math.h"
 #include "src/slurmd/slurmd/xcpu.h"
 
 #include "src/slurmd/common/proctrack.h"
 #include "src/slurmd/common/run_script.h"
+#include "src/slurmd/common/reverse_tree_math.h"
 #include "src/slurmd/common/slurmstepd_init.h"
 #include "src/slurmd/common/task_plugin.h"
 
