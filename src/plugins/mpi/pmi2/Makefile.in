@@ -160,9 +160,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(pkglibdir)"
 LTLIBRARIES = $(pkglib_LTLIBRARIES)
-# ATM: copied code from this library to setup.c
-#mpi_pmi2_la_DEPENDENCIES = $(top_builddir)/src/slurmd/common/libslurmd_reverse_tree_math.la
-mpi_pmi2_la_DEPENDENCIES = 
+mpi_pmi2_la_DEPENDENCIES = $(top_builddir)/src/slurmd/common/libslurmd_reverse_tree_math.la
 am_mpi_pmi2_la_OBJECTS = mpi_pmi2.lo agent.lo client.lo kvs.lo info.lo \
 	pmi1.lo pmi2.lo setup.lo spawn.lo tree.lo nameserv.lo
 mpi_pmi2_la_OBJECTS = $(am_mpi_pmi2_la_OBJECTS)
@@ -486,10 +484,8 @@ mpi_pmi2_la_SOURCES = mpi_pmi2.c \
 	nameserv.c nameserv.h
 
 mpi_pmi2_la_LDFLAGS = $(SO_LDFLAGS) $(PLUGIN_FLAGS)
-# ATM: copied code from this library to setup.c
-#mpi_pmi2_la_LIBADD = \
-#	$(top_builddir)/src/slurmd/common/libslurmd_reverse_tree_math.la
-mpi_pmi2_la_LIBADD = 
+mpi_pmi2_la_LIBADD = \
+	$(top_builddir)/src/slurmd/common/libslurmd_reverse_tree_math.la
 
 all: all-am
 

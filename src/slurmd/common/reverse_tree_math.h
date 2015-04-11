@@ -1,14 +1,18 @@
 /*****************************************************************************\
- * src/slurmd/slurmd/reverse_tree_math.h
+ * src/slurmd/common/reverse_tree_math.h
  * $Id: slurmd.h 7501 2006-03-14 20:05:50Z morrone $
  *****************************************************************************
  *  Copyright (C) 2006 The Regents of the University of California.
  *  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
  *  Written by Christopher J. Morrone <morrone2@llnl.gov>
  *  CODE-OCEC-09-009. All rights reserved.
+ *  Portions copyright (C) 2014 Institute of Semiconductor Physics
+ *                     Siberian Branch of Russian Academy of Science
+ *  Written by Artem Polyakov <artpol84@gmail.com>.
+ *  All rights reserved.
  *  
  *  This file is part of SLURM, a resource management program.
- *  For details, see <http://www.schedmd.com/slurmdocs/>.
+ *  For details, see <http://slurm.schedmd.com/>.
  *  Please also read the included file: DISCLAIMER.
  *  
  *  SLURM is free software; you can redistribute it and/or modify it under
@@ -58,5 +62,7 @@ void reverse_tree_info(int rank, int num_nodes, int width,
 		       int *parent, int *num_children,
 		       int *depth, int *total_depth);
 
+int reverse_tree_direct_children(int rank, int num_nodes,
+			int width, int depth, int *children);
 
 #endif /* !_REVERSE_TREE_MATH_H */

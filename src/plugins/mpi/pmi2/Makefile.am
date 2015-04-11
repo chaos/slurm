@@ -21,9 +21,8 @@ mpi_pmi2_la_SOURCES = mpi_pmi2.c \
 
 mpi_pmi2_la_LDFLAGS = $(SO_LDFLAGS) $(PLUGIN_FLAGS)
 
-# copied code from this library to setup.c
-#mpi_pmi2_la_LIBADD = \
-#	$(top_builddir)/src/slurmd/common/libslurmd_reverse_tree_math.la
+mpi_pmi2_la_LIBADD = \
+	$(top_builddir)/src/slurmd/common/libslurmd_reverse_tree_math.la
 
 force:
 
