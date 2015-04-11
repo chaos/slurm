@@ -344,7 +344,6 @@ _setup_stepd_kvs(const slurmd_job_t *job, char ***env)
 
 extern int
 pmi2_setup_stepd(const slurmd_job_t *job, char ***env)
-//pmi2_setup_stepd(const stepd_step_rec_t *job, char ***env)
 {
 	int rc;
 
@@ -387,13 +386,15 @@ _get_proc_mapping(const mpi_plugin_client_info_t *job)
 
 	node_cnt = job->step_layout->node_cnt;
 	task_cnt = job->step_layout->task_cnt;
+// ATM: SLURM_DIST_STATE_BASE isn't defined in slurm 2.3.3.
+//	task_dist = job->step_layout->task_dist & SLURM_DIST_STATE_BASE;
 	task_dist = job->step_layout->task_dist;
 	tasks = job->step_layout->tasks;
 	tids = job->step_layout->tids;
 
 	/* for now, PMI2 only supports vector processor mapping */
 
-// ATM: this isn't defined in slurm 2.3.3.
+// ATM: SLURM_DIST_CYCLIC_CFULL isn't defined in slurm 2.3.3.
 //	    task_dist == SLURM_DIST_CYCLIC_CFULL ||
 	if (task_dist == SLURM_DIST_CYCLIC ||
 	    task_dist == SLURM_DIST_CYCLIC_CYCLIC ||
@@ -459,7 +460,8 @@ _get_proc_mapping(const mpi_plugin_client_info_t *job)
 				}
 				if (start_id >= node_cnt)
 					break;
-				/* find start block. block may be less than plane size */
+				/* find start block. block may be less
+				 * than plane size */
 				block = 0;
 				while (rounds[start_id] < tasks[start_id] &&
 				       (task_mapped ==
@@ -473,9 +475,12 @@ _get_proc_mapping(const mpi_plugin_client_info_t *job)
 				while (end_id < node_cnt &&
 				       (rounds[end_id] + block - 1 <
 					tasks[end_id])) {
-					for (i = 0; i < tasks[end_id] - rounds[end_id]; i ++) {
+					for (i = 0;
+					     i < tasks[end_id] - rounds[end_id];
+					     i ++) {
 						if (task_mapped + i !=
-						    tids[end_id][rounds[end_id] + i]) {
+						    tids[end_id][rounds[end_id]
+								 + i]) {
 							break;
 						}
 					}
@@ -500,12 +505,12 @@ _get_proc_mapping(const mpi_plugin_client_info_t *job)
 		for (i = start_id + 1; i < node_cnt; i ++) {
 			if (node_task_cnt == tasks[i])
 				continue;
-			xstrfmtcat(mapping, ",(%u,%u,%hu)", start_id,
+			xstrfmtcat(mapping, ",(%u,%u,%u)", start_id,
 				   i - start_id, node_task_cnt);
 			start_id = i;
 			node_task_cnt = tasks[i];
 		}
-		xstrfmtcat(mapping, ",(%u,%u,%hu))", start_id, i - start_id,
+		xstrfmtcat(mapping, ",(%u,%u,%u))", start_id, i - start_id,
 			   node_task_cnt);
 	}
 
