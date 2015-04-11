@@ -66,6 +66,7 @@
 #include "pmi.h"
 #include "spawn.h"
 #include "kvs.h"
+#include "ring.h"
 
 #define PMI2_SOCK_ADDR_FMT "/tmp/sock.pmi2.%u.%u"
 
@@ -367,6 +368,12 @@ pmi2_setup_stepd(const slurmd_job_t *job, char ***env)
 
 	/* kvs */
 	rc = _setup_stepd_kvs(job, env);
+	if (rc != SLURM_SUCCESS)
+		return rc;
+
+	/* TODO: finalize pmix_ring state somewhere */
+	/* initialize pmix_ring state */
+	rc = pmix_ring_init();
 	if (rc != SLURM_SUCCESS)
 		return rc;
 

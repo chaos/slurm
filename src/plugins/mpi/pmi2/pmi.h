@@ -152,6 +152,8 @@
 #define NAMELOOKUPRESP_CMD     "name-lookup-response"
 #define SPAWN_CMD              "spawn"
 #define SPAWNRESP_CMD          "spawn-response"
+#define RING_CMD               "ring"
+#define RINGRESP_CMD           "ring-response"
 
 #define GETMYKVSNAME_CMD       "get_my_kvsname"
 #define GETMYKVSNAMERESP_CMD   "my_kvsname"
@@ -208,6 +210,9 @@
 #define ERRCODES_KEY      "errcodes"
 #define SERVICE_KEY       "service"
 #define INFO_KEY          "info"
+#define RING_COUNT_KEY    "ring-count"
+#define RING_LEFT_KEY     "ring-left"
+#define RING_RIGHT_KEY    "ring-right"
 
 #define TRUE_VAL          "TRUE"
 #define FALSE_VAL         "FALSE"
