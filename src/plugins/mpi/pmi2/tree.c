@@ -168,7 +168,11 @@ _handle_kvs_fence_resp(int fd, Buf buf)
 	debug3("mpi/pmi2: in _handle_kvs_fence_resp");
 
 	safe_unpack32(&seq, buf);
-	if (seq != kvs_seq - 1) {
+	if( seq == kvs_seq - 2) {
+		debug("mpi/pmi2: duplicate KVS_FENCE_RESP "
+		      "seq %d kvs_seq %d from srun ignored", seq, kvs_seq);
+		return rc;
+	} else if (seq != kvs_seq - 1) {
 		error("mpi/pmi2: invalid kvs seq from srun, expect %u"
 		      " got %u", kvs_seq - 1, seq);
 		rc = SLURM_ERROR;;
