@@ -441,6 +441,7 @@ int PMI2_Job_Disconnect(const char jobid[]);
   the function.
 
 @*/
+#define HAVE_PMIX_RING 1
 int PMIX_Ring(const char value[], int *rank, int *ranks, char left[], char right[], int maxvalue);
 
 /*@
