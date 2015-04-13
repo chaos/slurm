@@ -573,7 +573,7 @@ _handle_ring_resp(int fd, Buf buf)
 	safe_unpackstr_xmalloc(&left,  &temp32, buf);
 	safe_unpackstr_xmalloc(&right, &temp32, buf);
 
-	/* execute ring in operation */
+	/* execute ring out operation */
 	rc = pmix_ring_out(count, left, right);
 
 out:
