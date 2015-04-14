@@ -352,10 +352,13 @@ int pmix_ring_out(int count, char* left, char* right)
 		packstr(msg->left,            buf); /* send left value */
 		packstr(msg->right,           buf); /* send right value */
 
-		/* get rank of child stepd and send message */
+		/* get global rank of our i-th child stepd */
 		int rank = pmix_stepd_rank_child(i);
+
 		debug3("mpi/pmi2: rank=%d sending RING_OUT to rank=%d count=%d left=%s right=%s",
 			pmix_stepd_rank, rank, msg->count, msg->left, msg->right);
+
+		/* send message to child */
 		rc = pmix_stepd_send(get_buf_data(buf), (uint32_t) size_buf(buf), rank);
 
 		/* free message */
@@ -365,7 +368,7 @@ int pmix_ring_out(int count, char* left, char* right)
 	/* now send messages to children app procs,
 	 * and set their state back to normal */
 	for (i = 0; i < pmix_app_children; i++) {
-		/* send messages to children */
+		/* get pointer to message data for this child */
 		pmix_ring_msg* msg = &outmsgs[i];
 
 		/* construct message and send to client */
@@ -484,10 +487,13 @@ int pmix_ring_in(int ring_id, int count, char* left, char* right)
 			packstr(leftmost,        buf); /* send left value */
 			packstr(rightmost,       buf); /* send right value */
 
-			/* get rank of parent stepd and send message */
+			/* get global rank of our parent stepd */
 			int rank = pmix_stepd_rank_parent();
+
 			debug3("mpi/pmi2: rank=%d sending RING_IN to rank=%d count=%d left=%s right=%s",
 				my_rank, rank, count, leftmost, rightmost);
+
+			/* send message to parent */
                         rc = pmix_stepd_send(get_buf_data(buf), (uint32_t) size_buf(buf), rank);
 
 			/* free message */
