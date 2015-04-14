@@ -8,10 +8,15 @@
 #include <sys/time.h>
 
 /*
+ * To build:
+ *
  * gcc -g -O0 -o testpmixring testpmixring.c -I<slurm_install>/include -Wl,-rpath,<slurm_install>/lib -L<slurm_install>/lib -lpmi2
+ *
+ * To run:
+ *
+ * srun -n8 -m block ./testpmixring
+ * srun -n8 -m cyclic ./testpmixring
  */
-
-static char *mrand(int, int);
 
 int
 main(int argc, char **argv)
@@ -26,7 +31,6 @@ main(int argc, char **argv)
 	char right[128];
 
 	gettimeofday(&tv, NULL);
-	srand(tv.tv_sec);
 
 	PMI2_Init(&spawned, &size, &rank, &appnum);
 
@@ -47,22 +51,4 @@ main(int argc, char **argv)
 			+ (tv2.tv_usec - tv.tv_usec) / 1000.0));
 
 	return 0;
-}
-
-/* Generate a random number between
- * min and Max and convert it to
- * a string.
- */
-static char *
-mrand(int m, int M)
-{
-	int i;
-	time_t t;
-	static char buf[64];
-
-	memset(buf, 0, sizeof(buf));
-	for (i = 0; i  < 16; i++)
-		buf[i] = rand() % (M - m + 1) + m;
-
-	return buf;
 }
