@@ -347,7 +347,7 @@ int pmix_ring_out(int count, char* left, char* right)
 
 		/* construct message */
 		Buf buf = init_buf(1024);
-		pack16(TREE_CMD_RING_RESP,    buf); /* specify message type */
+		pack16(TREE_CMD_RING_RESP,    buf); /* specify message type (RING_OUT) */
 		pack32((uint32_t) msg->count, buf); /* send count value */
 		packstr(msg->left,            buf); /* send left value */
 		packstr(msg->right,           buf); /* send right value */
@@ -425,6 +425,7 @@ int pmix_ring_out(int count, char* left, char* right)
  *   right = right value from rightmost child */
 int pmix_ring_in(int ring_id, int count, char* left, char* right)
 {
+	int i;
 	int rc = SLURM_SUCCESS;
 
 	debug3("mpi/pmi2: in pmix_ring_in rank=%d ring_id=%d count=%d left=%s right=%s",
@@ -443,31 +444,22 @@ int pmix_ring_in(int ring_id, int count, char* left, char* right)
          * and each stepd child, forward a ring_in message to our
          * parent in the stepd tree */
 	if (pmix_ring_count == pmix_ring_children) {
-		/* lookup leftmost address from all children */
-		int i;
-		char* leftmost = NULL;
-		for (i = 0; i < pmix_ring_children; i++) {
-			leftmost = pmix_ring_msgs[i].left;
-			if (leftmost != NULL) {
-				/* found one */
-				break;
-			}
-		}
+		/* each stepd has at least one application process
+		 * so each has at least one child */
 
-		/* lookup rightmost address from all children */
-		char* rightmost = NULL;
-		for (i = (pmix_ring_children - 1); i >= 0; i--) {
-			rightmost = pmix_ring_msgs[i].right;
-			if (rightmost != NULL) {
-				/* found one */
-				break;
-			}
-		}
+		/* lookup leftmost value from all children,
+		 * take left value from leftmost process */
+		char* leftmost = pmix_ring_msgs[0].left;
+
+		/* lookup rightmost value from all children,
+		 * take right value from rightmost process */
+		int right_id = pmix_ring_children - 1;
+		char* rightmost = pmix_ring_msgs[right_id].right;
 
 		/* total count values across all children */
-		count = 0;
+		uint32_t sum = 0;
 		for (i = 0; i < pmix_ring_children; i++) {
-			count += pmix_ring_msgs[i].count;
+			sum += (uint32_t) pmix_ring_msgs[i].count;
 		}
 
 		/* send to parent if we have one, otherwise create ring output
@@ -481,11 +473,11 @@ int pmix_ring_in(int ring_id, int count, char* left, char* right)
 
 			/* construct message */
 			Buf buf = init_buf(1024);
-			pack16(TREE_CMD_RING,    buf); /* specify message type */
-			pack32(my_rank,          buf); /* send our rank */
-			pack32((uint32_t) count, buf); /* send count value */
-			packstr(leftmost,        buf); /* send left value */
-			packstr(rightmost,       buf); /* send right value */
+			pack16(TREE_CMD_RING, buf); /* specify message type (RING_IN) */
+			pack32(my_rank,       buf); /* send our rank */
+			pack32(sum,           buf); /* send count value */
+			packstr(leftmost,     buf); /* send left value */
+			packstr(rightmost,    buf); /* send right value */
 
 			/* get global rank of our parent stepd */
 			int rank = pmix_stepd_rank_parent();
