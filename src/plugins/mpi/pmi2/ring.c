@@ -219,20 +219,11 @@ int pmix_ring_init()
 	}
 	pmix_stepd_children = max_child - min_child + 1;
 
-	/* initialize count */
-	pmix_ring_count = 0;
-
 	/* record number of children we have (includes app procs and stepds) */
 	pmix_ring_children = pmix_app_children + pmix_stepd_children;
 
 	/* allocate a structure to record ring_in message from each child */
 	pmix_ring_msgs = (pmix_ring_msg*) xmalloc(pmix_ring_children * sizeof(pmix_ring_msg));
-	if (pmix_ring_msgs == NULL) {
-		error("mpi/pmi2: failed to allocate ring in messages");
-		/* cancel the step to avoid tasks hang */
-		slurm_kill_job_step(job_info.jobid, job_info.stepid,
-				    SIGKILL);
-	}
 
 	/* initialize messages */
 	for (i = 0; i < pmix_ring_children; i++) {
@@ -240,6 +231,9 @@ int pmix_ring_init()
         	pmix_ring_msgs[i].left  = NULL;
         	pmix_ring_msgs[i].right = NULL;
         }
+
+	/* initialize count */
+	pmix_ring_count = 0;
 
 	return rc;
 }
@@ -299,12 +293,6 @@ int pmix_ring_out(int count, char* left, char* right)
 
 	/* allocate a structure to compute values to send to each child */
 	pmix_ring_msg* outmsgs = (pmix_ring_msg*) xmalloc(pmix_ring_children * sizeof(pmix_ring_msg));
-	if (outmsgs == NULL) {
-		error("mpi/pmi2: failed to allocate ring out messages");
-		/* cancel the step to avoid tasks hang */
-		slurm_kill_job_step(job_info.jobid, job_info.stepid,
-				    SIGKILL);
-	}
 
         /* initialize messages to all children */
 	int i;
@@ -444,12 +432,6 @@ int pmix_ring_in(int ring_id, int count, char* left, char* right)
 	msg->count = count;
 	msg->left  = xstrdup(left);
 	msg->right = xstrdup(right);
-	if (msg->left == NULL || msg->right == NULL) {
-		error("mpi/pmi2: failed to copy ring values");
-		/* cancel the step to avoid tasks hang */
-		slurm_kill_job_step(job_info.jobid, job_info.stepid,
-				    SIGKILL);
-	}
 
 	/* update our running count of received ring_in messages */
 	pmix_ring_count++;
