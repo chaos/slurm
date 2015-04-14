@@ -1,5 +1,8 @@
+/* for pmi2_job_info_t definition */
+#include "setup.h"
+
 /* allocate resources to track PMIX_Ring state */
-int pmix_ring_init();
+int pmix_ring_init(const pmi2_job_info_t* job, char*** env);
 
 /* free resources allocated to track PMIX_Ring state */
 int pmix_ring_finalize();

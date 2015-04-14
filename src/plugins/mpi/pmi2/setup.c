@@ -373,7 +373,7 @@ pmi2_setup_stepd(const slurmd_job_t *job, char ***env)
 
 	/* TODO: finalize pmix_ring state somewhere */
 	/* initialize pmix_ring state */
-	rc = pmix_ring_init();
+	rc = pmix_ring_init(&job_info, env);
 	if (rc != SLURM_SUCCESS)
 		return rc;
 

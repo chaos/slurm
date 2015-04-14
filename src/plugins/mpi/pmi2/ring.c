@@ -182,31 +182,38 @@ static int pmix_stepd_send(const char* buf, uint32_t size, int rank)
 } 
 
 /* allocate resources to track PMIX_Ring state */
-int pmix_ring_init()
+int pmix_ring_init(const pmi2_job_info_t* job, char*** env)
 {
 	int i;
 	int rc = SLURM_SUCCESS;
-
-	/* assumes job_info is initialized */
 
 	/* this is called by each stepd process, and each stepd has
 	 * at least one application process, so
 	 * pmix_app_children > 0 and pmix_ring_children > 0 */
 
-	/* allocate hostlist so we can map a stepd rank to a hostname */
-	pmix_stepd_hostlist = hostlist_create(job_info.step_nodelist);
+	/* allow user to override default tree width via variable */
+	char* p = getenvp(*env, PMIX_RING_TREE_WIDTH_ENV);
+	if (p) {
+		int width = atoi(p);
+		if (width >= 2) {
+			pmix_stepd_width = width;
+                } else {
+			info("Invalid %s value detected (%d), using (%d).",
+			     PMIX_RING_TREE_WIDTH_ENV, width, pmix_stepd_width);
+		}
+	}
 
-	/* TODO: read width from env variable? */
-	/* pmix_stepd_width = tree_width; */
+	/* allocate hostlist so we can map a stepd rank to a hostname */
+	pmix_stepd_hostlist = hostlist_create(job->step_nodelist);
 
 	/* record our rank in the stepd tree */
-	pmix_stepd_rank = job_info.nodeid;
+	pmix_stepd_rank = job->nodeid;
 
         /* record number of ranks in stepd tree */
-        pmix_stepd_ranks = job_info.nnodes;
+        pmix_stepd_ranks = job->nnodes;
 
         /* record number of application children we serve */
-        pmix_app_children = job_info.ltasks;
+        pmix_app_children = job->ltasks;
 
 	/* compute number of stepd children */
 	int min_child = pmix_stepd_rank * pmix_stepd_width + 1;
