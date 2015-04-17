@@ -167,13 +167,15 @@ static int pmix_stepd_send(const char* buf, uint32_t size, int rank)
 {
 	int rc = SLURM_SUCCESS;
 
-	/* TODO: add retry logic like temp_kvs_send in kvs.c */
-
 	/* map rank to host name */
 	char* host = hostlist_nth(pmix_stepd_hostlist, rank); /* strdup-ed */
 
+	/* TODO: add retry logic like temp_kvs_send in kvs.c */
+
 	/* send message */
 	rc = slurm_forward_data(host, tree_sock_addr, size, (char*) buf);
+
+	/* TODO: abort if this fails */
 
 	/* free host name */
 	free(host); /* strdup-ed */
@@ -368,6 +370,8 @@ int pmix_ring_out(int count, char* left, char* right)
 		/* send message to child */
 		rc = pmix_stepd_send(get_buf_data(buf), (uint32_t) size_buf(buf), rank);
 
+		/* TODO: use tmp_rc here to catch any failure */
+
 		/* free message */
 		free_buf(buf);
 	}
@@ -377,6 +381,8 @@ int pmix_ring_out(int count, char* left, char* right)
 	for (i = 0; i < pmix_app_children; i++) {
 		/* get pointer to message data for this child */
 		pmix_ring_msg* msg = &outmsgs[i];
+
+		/* TODO: want to catch send failure here? */
 
 		/* construct message and send to client */
 		client_resp_t *resp = client_resp_new();
@@ -494,6 +500,8 @@ int pmix_ring_in(int ring_id, int count, char* left, char* right)
 
 			/* send message to parent */
                         rc = pmix_stepd_send(get_buf_data(buf), (uint32_t) size_buf(buf), rank);
+
+			/* TODO: use tmp_rc here to catch any failure */
 
 			/* free message */
 			free_buf(buf);
