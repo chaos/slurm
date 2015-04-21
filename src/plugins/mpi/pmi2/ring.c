@@ -71,6 +71,7 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "src/common/slurm_xlator.h"
 #include "src/common/slurm_protocol_interface.h"
@@ -82,6 +83,9 @@
 #include "setup.h"
 #include "tree.h"
 #include "ring.h"
+
+/* max number of times to retry sending to stepd before giving up */
+#define MAX_RETRIES 5
 
 /* tracks values received from child in pmix_ring_in message */
 typedef struct {
@@ -170,12 +174,35 @@ static int pmix_stepd_send(const char* buf, uint32_t size, int rank)
 	/* map rank to host name */
 	char* host = hostlist_nth(pmix_stepd_hostlist, rank); /* strdup-ed */
 
-	/* TODO: add retry logic like temp_kvs_send in kvs.c */
+	/* delay to sleep between retries in seconds,
+	 * if there are multiple retires, we'll grow this delay
+          * using exponential backoff, doubling it each time */
+	unsigned int delay = 1;
 
-	/* send message */
-	rc = slurm_forward_data(host, tree_sock_addr, size, (char*) buf);
+	/* we'll try multiple times to send message to stepd,
+	 * we retry in case stepd is just slow to get started */
+	int retries = 0;
+	while (1) {
+		/* attempt to send message */
+		rc = slurm_forward_data(host, tree_sock_addr, size, (char*) buf);
+		if (rc == SLURM_SUCCESS) {
+			/* message sent successfully, we're done */
+			break;
+		}
 
-	/* TODO: abort if this fails */
+		/* check whether we've exceeded our retry count */
+		retries++;
+		if (retries >= MAX_RETRIES) {
+			/* cancel the step to avoid tasks hang */
+			slurm_kill_job_step(job_info.jobid, job_info.stepid,
+					    SIGKILL);
+		}
+
+		/* didn't succeeded, but we'll retry again,
+		 * sleep for a bit first */
+		sleep(delay);
+		delay *= 2;
+	}
 
 	/* free host name */
 	free(host); /* strdup-ed */
