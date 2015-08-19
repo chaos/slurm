@@ -1,6 +1,10 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.21chaos
+==================================
+ -- Fix TOSS-2919: lanl clusters show 'PAM unable to dispatch function'
+
 * Changes in SLURM 2.3.3-1.20chaos
 ==================================
  -- Fix slicing of the pty column and row fields
