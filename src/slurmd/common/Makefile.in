@@ -88,6 +88,10 @@ libslurmd_common_la_LIBADD =
 am_libslurmd_common_la_OBJECTS = proctrack.lo setproctitle.lo \
 	slurmstepd_init.lo run_script.lo task_plugin.lo set_oomadj.lo
 libslurmd_common_la_OBJECTS = $(am_libslurmd_common_la_OBJECTS)
+libslurmd_reverse_tree_math_la_LIBADD =
+am_libslurmd_reverse_tree_math_la_OBJECTS = reverse_tree_math.lo
+libslurmd_reverse_tree_math_la_OBJECTS =  \
+	$(am_libslurmd_reverse_tree_math_la_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir) -I$(top_builddir)/slurm
 depcomp = $(SHELL) $(top_srcdir)/auxdir/depcomp
 am__depfiles_maybe = depfiles
@@ -101,8 +105,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libslurmd_common_la_SOURCES)
-DIST_SOURCES = $(libslurmd_common_la_SOURCES)
+SOURCES = $(libslurmd_common_la_SOURCES) $(libslurmd_reverse_tree_math_la_SOURCES)
+DIST_SOURCES = $(libslurmd_common_la_SOURCES) $(libslurmd_reverse_tree_math_la_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -308,7 +312,7 @@ CLEANFILES = core.*
 INCLUDES = -I$(top_srcdir)
 
 # making a .la
-noinst_LTLIBRARIES = libslurmd_common.la
+noinst_LTLIBRARIES = libslurmd_common.la libslurmd_reverse_tree_math.la
 libslurmd_common_la_SOURCES = \
 	proctrack.c proctrack.h \
 	setproctitle.c setproctitle.h \
@@ -317,6 +321,10 @@ libslurmd_common_la_SOURCES = \
 	task_plugin.c task_plugin.h \
 	set_oomadj.c set_oomadj.h \
 	reverse_tree.h
+
+libslurmd_reverse_tree_math_la_SOURCES = \
+	reverse_tree_math.c \
+	reverse_tree_math.h
 
 all: all-am
 
@@ -364,6 +372,9 @@ clean-noinstLTLIBRARIES:
 libslurmd_common.la: $(libslurmd_common_la_OBJECTS) $(libslurmd_common_la_DEPENDENCIES) 
 	$(LINK)  $(libslurmd_common_la_OBJECTS) $(libslurmd_common_la_LIBADD) $(LIBS)
 
+libslurmd_reverse_tree_math.la: $(libslurmd_reverse_tree_math_la_OBJECTS) $(libslurmd_reverse_tree_math_la_DEPENDENCIES) $(EXTRA_libslurmd_reverse_tree_math_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK)  $(libslurmd_reverse_tree_math_la_OBJECTS) $(libslurmd_reverse_tree_math_la_LIBADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -371,6 +382,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proctrack.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reverse_tree_math.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/run_script.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/set_oomadj.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setproctitle.Plo@am__quote@
