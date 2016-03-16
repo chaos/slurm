@@ -88,12 +88,13 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(sbindir)"
 PROGRAMS = $(sbin_PROGRAMS)
 am__objects_1 = slurmd.$(OBJEXT) req.$(OBJEXT) get_mach_stat.$(OBJEXT) \
-	read_proc.$(OBJEXT) reverse_tree_math.$(OBJEXT) xcpu.$(OBJEXT)
+	read_proc.$(OBJEXT) xcpu.$(OBJEXT)
 am_slurmd_OBJECTS = $(am__objects_1)
 slurmd_OBJECTS = $(am_slurmd_OBJECTS)
 slurmd_DEPENDENCIES = $(top_builddir)/src/common/libdaemonize.la \
 	$(top_builddir)/src/api/libslurm.o \
-	../common/libslurmd_common.la
+	../common/libslurmd_common.la \
+	../common/libslurmd_reverse_tree_math.la
 slurmd_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(slurmd_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -318,14 +319,14 @@ slurmd_LDADD = \
 	$(top_builddir)/src/common/libdaemonize.la \
 	$(top_builddir)/src/api/libslurm.o -ldl	   \
 	$(PLPA_LIBS) \
-	../common/libslurmd_common.la
+	../common/libslurmd_common.la \
+	../common/libslurmd_reverse_tree_math.la
 
 SLURMD_SOURCES = \
 	slurmd.c slurmd.h \
 	req.c req.h \
 	get_mach_stat.c get_mach_stat.h	\
 	read_proc.c 	        	\
-	reverse_tree_math.c reverse_tree_math.h \
 	xcpu.c xcpu.h
 
 slurmd_SOURCES = $(SLURMD_SOURCES)
@@ -424,7 +425,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/get_mach_stat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/read_proc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/req.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reverse_tree_math.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/slurmd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xcpu.Po@am__quote@
 
