@@ -154,7 +154,7 @@ spawn_req_pack(spawn_req_t *req, Buf buf)
 	spawn_subcmd_t *subcmd;
 	void *auth_cred;
 
-	auth_cred = g_slurm_auth_create(NULL, 2, NULL);
+	auth_cred = g_slurm_auth_create(NULL, 2, slurm_get_auth_info());
 	if (auth_cred == NULL) {
 		error("authentication: %s",
 		      g_slurm_auth_errstr(g_slurm_auth_errno(NULL)) );
@@ -204,7 +204,7 @@ spawn_req_unpack(spawn_req_t **req_ptr, Buf buf)
 		      g_slurm_auth_errstr(g_slurm_auth_errno(NULL)) );
 		return SLURM_ERROR;
 	}
-	auth_uid = g_slurm_auth_get_uid(auth_cred, NULL);
+	auth_uid = g_slurm_auth_get_uid(auth_cred, slurm_get_auth_info());
 	(void) g_slurm_auth_destroy(auth_cred);
 	my_uid = getuid();
 	if ((auth_uid != 0) && (auth_uid != my_uid)) {
@@ -403,8 +403,8 @@ spawn_resp_send_to_fd(spawn_resp_t *resp, int fd)
 /* 	cmd = TREE_CMD_SPAWN_RESP; */
 /* 	pack16(cmd, buf); */
 	spawn_resp_pack(resp, buf);
-	rc = _slurm_msg_sendto(fd, get_buf_data(buf), get_buf_offset(buf),
-			       SLURM_PROTOCOL_NO_SEND_RECV_FLAGS);
+	rc = slurm_msg_sendto(fd, get_buf_data(buf), get_buf_offset(buf),
+			      SLURM_PROTOCOL_NO_SEND_RECV_FLAGS);
 	free_buf(buf);
 
 	return rc;

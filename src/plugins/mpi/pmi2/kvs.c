@@ -208,6 +208,7 @@ temp_kvs_send(void)
 		if (retry == 1) {
 			verbose("failed to send temp kvs, rc=%d, retrying", rc);
 		}
+
 		if (! in_stepd()) {	/* srun */
 			rc = tree_msg_to_stepds(hl,
 						temp_kvs_cnt,
@@ -222,6 +223,7 @@ temp_kvs_send(void)
 		}
 		if (rc == SLURM_SUCCESS)
 			break;
+
 		retry ++;
 		if (retry >= MAX_RETRIES)
 			break;

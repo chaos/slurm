@@ -21,34 +21,43 @@
 int
 main(int argc, char **argv)
 {
-	int spawned, size, rank, appnum;
-	struct timeval tv, tv2;
-        int ring_rank, ring_size;
-	char jobid[128];
-	char val[128];
-	char buf[128];
-	char left[128];
-	char right[128];
+    int spawned, size, rank, appnum;
+    struct timeval tv, tv2;
+    int ring_rank, ring_size;
+    char jobid[128];
+    char val[128];
+    char buf[128];
+    char left[128];
+    char right[128];
 
-	gettimeofday(&tv, NULL);
+    {
+        int x = 1;
 
-	PMI2_Init(&spawned, &size, &rank, &appnum);
+        while (x) {
+            fprintf(stderr, "attachme %d\n", getpid());
+            sleep(2);
+        }
+    }
 
-	PMI2_Job_GetId(jobid, sizeof(buf));
+    gettimeofday(&tv, NULL);
 
-        /* test PMIX_Ring */
-	snprintf(val, sizeof(val), "pmi_rank=%d", rank);
-	PMIX_Ring(val, &ring_rank, &ring_size, left, right, 128);
+    PMI2_Init(&spawned, &size, &rank, &appnum);
 
-	printf("pmi_rank:%d ring_rank:%d ring_size:%d left:%s mine:%s right:%s\n",
-		rank, ring_rank, ring_size, left, val, right);
+    PMI2_Job_GetId(jobid, sizeof(buf));
 
-	PMI2_Finalize();
+    /* test PMIX_Ring */
+    snprintf(val, sizeof(val), "pmi_rank=%d", rank);
+    PMIX_Ring(val, &ring_rank, &ring_size, left, right, 128);
 
-	gettimeofday(&tv2, NULL);
-	printf("%f\n",
-		   ((tv2.tv_sec - tv.tv_sec) * 1000.0
-			+ (tv2.tv_usec - tv.tv_usec) / 1000.0));
+    printf("pmi_rank:%d ring_rank:%d ring_size:%d left:%s mine:%s right:%s\n",
+           rank, ring_rank, ring_size, left, val, right);
 
-	return 0;
+    PMI2_Finalize();
+
+    gettimeofday(&tv2, NULL);
+    printf("%f\n",
+           ((tv2.tv_sec - tv.tv_sec) * 1000.0
+            + (tv2.tv_usec - tv.tv_usec) / 1000.0));
+
+    return 0;
 }
