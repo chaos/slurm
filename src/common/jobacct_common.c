@@ -39,6 +39,8 @@
  *  Copyright (C) 2002 The Regents of the University of California.
 \*****************************************************************************/
 
+#include <sys/time.h>
+#include <sys/resource.h>
 #include "jobacct_common.h"
 
 /*

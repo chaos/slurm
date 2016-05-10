@@ -43,6 +43,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include "src/common/xstring.h"
 #include "src/common/xmalloc.h"
