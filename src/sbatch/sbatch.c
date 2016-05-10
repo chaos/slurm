@@ -48,6 +48,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/param.h>               /* MAXPATHLEN */
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <fcntl.h>
 
 #include "slurm/slurm.h"
