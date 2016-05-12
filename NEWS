@@ -1,6 +1,11 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.22chaos
+==================================
+ -- Add missing #includes required in TOSS 3 build environment
+ -- Fix MPIR_partial_attach_ok issues for parallel debuggers
+
 * Changes in SLURM 2.3.3-1.21chaos
 ==================================
  -- Fix TOSS-2919: lanl clusters show 'PAM unable to dispatch function'
