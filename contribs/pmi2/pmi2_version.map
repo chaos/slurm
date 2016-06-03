@@ -1,0 +1,4 @@
+{ global:
+   PMI2_*;
+  local: *;
+};
