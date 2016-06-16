@@ -403,7 +403,7 @@ spawn_resp_send_to_fd(spawn_resp_t *resp, int fd)
 /* 	cmd = TREE_CMD_SPAWN_RESP; */
 /* 	pack16(cmd, buf); */
 	spawn_resp_pack(resp, buf);
-	rc = slurm_msg_sendto(fd, get_buf_data(buf), get_buf_offset(buf),
+	rc = _slurm_msg_sendto(fd, get_buf_data(buf), get_buf_offset(buf),
 			      SLURM_PROTOCOL_NO_SEND_RECV_FLAGS);
 	free_buf(buf);
 
