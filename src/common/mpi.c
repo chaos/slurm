@@ -66,6 +66,10 @@ typedef struct slurm_mpi_ops {
 					   char ***env);
 	bool         (*client_single_task)(void);
 	int          (*client_fini)       (mpi_plugin_client_state_t *);
+
+        /* ATM: add new callback, but must go at end to maintain backwards compatibility */
+	int          (*slurmstepd_prefork)(const slurmd_job_t *job,
+					   char ***env);
 } slurm_mpi_ops_t;
 
 struct slurm_mpi_context {
@@ -145,7 +149,8 @@ _slurm_mpi_get_ops( slurm_mpi_context_t c )
 		"p_mpi_hook_slurmstepd_task",
 		"p_mpi_hook_client_prelaunch",
 		"p_mpi_hook_client_single_task_per_node",
-		"p_mpi_hook_client_fini"
+		"p_mpi_hook_client_fini",
+                "p_mpi_hook_slurmstepd_prefork"
 	};
 	int n_syms = sizeof( syms ) / sizeof( char * );
 	char *plugin_dir = NULL;
@@ -263,6 +268,14 @@ int mpi_hook_slurmstepd_init (char ***env)
 	unsetenvp (*env, "SLURM_MPI_TYPE");
 
 	return SLURM_SUCCESS;
+}
+
+int mpi_hook_slurmstepd_prefork (const slurmd_job_t *job, char ***env)
+{
+	if (mpi_hook_slurmstepd_init(env) == SLURM_ERROR)
+		return SLURM_ERROR;
+
+	return (*(g_context->ops.slurmstepd_prefork))(job, env);
 }
 
 int mpi_hook_slurmstepd_task (const mpi_plugin_task_info_t *job, char ***env)
