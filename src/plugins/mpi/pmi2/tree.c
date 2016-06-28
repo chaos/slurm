@@ -717,7 +717,7 @@ tree_msg_to_stepds(hostlist_t hl, uint32_t len, char *data)
 							ret_data_info->data);
 			if (temp_rc){
 				rc = temp_rc;
-				error("tree_msg_to_stepds: host=%s, rc = %d",
+				debug("tree_msg_to_stepds: host=%s, rc = %d",
 				      ret_data_info->node_name, rc);
 			} else {
 				hostlist_delete_host(hl, ret_data_info->node_name);
