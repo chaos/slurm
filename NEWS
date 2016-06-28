@@ -1,6 +1,10 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.24chaos
+==================================
+ -- Increase max message to 1GB to support pmi2 scalability.
+
 * Changes in SLURM 2.3.3-1.23chaos
 ==================================
  -- Backport more scalable PMI2 implementation from upstream Slurm.
