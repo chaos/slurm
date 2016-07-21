@@ -429,8 +429,8 @@ install -D -m755 etc/slurm.epilog.clean ${RPM_BUILD_ROOT}%{_sysconfdir}/slurm.ep
 install -D -m755 contribs/sjstat ${RPM_BUILD_ROOT}%{_bindir}/sjstat
 
 # Delete unpackaged files:
-rm -f $RPM_BUILD_ROOT/%{_libdir}/libpmi.a
-rm -f $RPM_BUILD_ROOT/%{_libdir}/libpmi2.a
+rm -f $RPM_BUILD_ROOT/%{_libdir}/libpmi.{a,la}
+rm -f $RPM_BUILD_ROOT/%{_libdir}/libpmi2.{a,la}
 rm -f $RPM_BUILD_ROOT/%{_libdir}/libslurm.a
 rm -f $RPM_BUILD_ROOT/%{_libdir}/libslurmdb.a
 rm -f $RPM_BUILD_ROOT/%{_libdir}/slurm/*.{a,la}
@@ -612,8 +612,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %dir %attr(0755,root,root) %{_prefix}/include/slurm
 %{_prefix}/include/slurm/*
-%{_libdir}/libpmi.la
-%{_libdir}/libpmi2.la
 %{_libdir}/libslurm.la
 %{_libdir}/libslurmdb.la
 %{_mandir}/man3/slurm_*
