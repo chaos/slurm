@@ -1,6 +1,12 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.27chaos
+==================================
+ -- Increase the compiled-in MAX_TASKS_PER_NODE from 128 to 288 to support
+    increased core counts of CTS-1 systems.
+    Addresses Jira ticket TOSS-3371
+
 * Changes in SLURM 2.3.3-1.26chaos
 ==================================
  -- This is to enable procs to call PMIX_Ring when started as a single
