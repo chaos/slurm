@@ -300,7 +300,7 @@ static pid_t _run_prog(char *prog, char *arg)
 	if (prog == NULL)	/* disabled, useful for testing */
 		return -1;
 
-	strncpy(program, prog, sizeof(program));
+	strncpy(program, prog, sizeof(program)-1);
 	pname = strrchr(program, '/');
 	if (pname == NULL)
 		pname = program;

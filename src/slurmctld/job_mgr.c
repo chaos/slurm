@@ -4168,8 +4168,10 @@ _write_data_array_to_file(char *file_name, char **data, uint32_t size)
 		return ESLURM_WRITING_TO_FILE;
 	}
 
-	if (data == NULL)
+	if (data == NULL) {
+		close(fd);
 		return SLURM_SUCCESS;
+	}
 
 	for (i = 0; i < size; i++) {
 		nwrite = strlen(data[i]) + 1;
@@ -4313,6 +4315,7 @@ _read_data_array_from_file(char *file_name, char ***data, uint32_t * size,
 	if (rec_cnt == 0) {
 		*data = NULL;
 		*size = 0;
+		close(fd);
 		return;
 	}
 
@@ -8313,10 +8316,10 @@ kill_job_on_node(uint32_t job_id, struct job_record *job_ptr,
 		kill_req->select_jobinfo =
 			select_g_select_jobinfo_copy(job_ptr->select_jobinfo);
 		kill_req->job_state = job_ptr->job_state;
+		kill_req->spank_job_env = xduparray(job_ptr->spank_job_env_size,
+			job_ptr->spank_job_env);
+		kill_req->spank_job_env_size = job_ptr->spank_job_env_size;
 	}
-	kill_req->spank_job_env = xduparray(job_ptr->spank_job_env_size,
-					    job_ptr->spank_job_env);
-	kill_req->spank_job_env_size = job_ptr->spank_job_env_size;
 
 	agent_info = xmalloc(sizeof(agent_arg_t));
 	agent_info->node_count	= 1;

@@ -1000,7 +1000,7 @@ static int _cluster_cpus(slurmdbd_conn_t *slurmdbd_conn,
 		rc = SLURM_ERROR;
 	}
 end_it:
-	if (rc == SLURM_SUCCESS)
+	if (rc == SLURM_SUCCESS && cluster_cpus_msg)
 		slurmdbd_conn->cluster_cpus = cluster_cpus_msg->cpu_count;
 	if (!slurmdbd_conn->ctld_port) {
 		info("DBD_CLUSTER_CPUS: cluster not registered");
@@ -2727,7 +2727,7 @@ static int   _register_ctld(slurmdbd_conn_t *slurmdbd_conn,
 
 end_it:
 
-	if (rc == SLURM_SUCCESS)
+	if (rc == SLURM_SUCCESS && register_ctld_msg)
 		slurmdbd_conn->ctld_port = register_ctld_msg->port;
 
 	slurmdbd_free_register_ctld_msg(register_ctld_msg);
