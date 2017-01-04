@@ -1311,7 +1311,7 @@ _rpc_batch_job(slurm_msg_t *msg)
 			}
 			error("[job %u] prolog failed status=%d:%d",
 			      req->job_id, exit_status, term_sig);
-			_prolog_error(req, rc);
+			/* _prolog_error(req, rc); */
 			rc = ESLURMD_PROLOG_FAILED;
 			goto done;
 		}
