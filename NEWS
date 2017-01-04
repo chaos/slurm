@@ -1,6 +1,10 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.28chaos
+==================================
+ -- Don't report a prolog error to the user's output/error file.
+
 * Changes in SLURM 2.3.3-1.27chaos
 ==================================
  -- Increase the compiled-in MAX_TASKS_PER_NODE from 128 to 288 to support
