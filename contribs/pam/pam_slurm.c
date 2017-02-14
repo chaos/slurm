@@ -294,6 +294,18 @@ _slurm_match_allocation(uid_t uid)
 				     uid, hostname, j->job_id);
 				authorized = 1;
 				break;
+			} else {
+			    char *nodename = slurm_conf_get_nodename(hostname);
+			    if (nodename) {
+				if (_hostrange_member(nodename, j->nodes) ) {
+				    DBG ("user %ld allocated node %s in job %ld",
+					 uid, nodename, j->job_id);
+				    authorized = 1;
+				    xfree(nodename);
+				    break;
+				}
+				xfree(nodename);
+			    }
 			}
 		}
 	}
