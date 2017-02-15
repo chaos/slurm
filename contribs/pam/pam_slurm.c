@@ -49,6 +49,8 @@
 #include <dlfcn.h>
 
 #include "slurm/slurm.h"
+#include "src/common/xmalloc.h"
+#include "src/common/read_config.h"
 
 /*  Define the externally visible functions in this file.
  */
@@ -83,7 +85,7 @@ void __attribute__ ((destructor)) libpam_slurm_fini(void);
  *
  */
 static void * slurm_h = NULL;
-static int    debug   = 0;
+static int    pam_debug   = 0;
 
 static void _log_msg(int level, const char *format, ...);
 static void _parse_args(struct _options *opts, int argc, const char **argv);
@@ -94,7 +96,7 @@ static void _send_denial_msg(pam_handle_t *pamh, struct _options *opts,
 
 #define DBG(msg,args...)					\
 	do {							\
-		if (debug)					\
+		if (pam_debug)					\
 			_log_msg(LOG_INFO, msg, ##args);	\
 	} while (0);
 
@@ -211,7 +213,7 @@ _parse_args(struct _options *opts, int argc, const char **argv)
 	 */
 	for (i=0; i<argc; i++) {
 		if (!strcmp(argv[i], "debug"))
-			opts->enable_debug = debug = 1;
+			opts->enable_debug = pam_debug = 1;
 		else if (!strcmp(argv[i], "no_sys_info"))
 			opts->disable_sys_info = 1;
 		else if (!strcmp(argv[i], "no_warn"))
@@ -228,7 +230,7 @@ _parse_args(struct _options *opts, int argc, const char **argv)
 
 /*
  *  Return 1 if 'hostname' is a member of 'str', a SLURM-style host list as
- *  returned by SLURM datatbase queries, else 0.  The 'str' argument is
+ *  returned by SLURM database queries, else 0.  The 'str' argument is
  *  truncated to the base prefix as a side-effect.
  */
 static int
@@ -292,6 +294,18 @@ _slurm_match_allocation(uid_t uid)
 				     uid, hostname, j->job_id);
 				authorized = 1;
 				break;
+			} else {
+			    char *nodename = slurm_conf_get_nodename(hostname);
+			    if (nodename) {
+				if (_hostrange_member(nodename, j->nodes) ) {
+				    DBG ("user %ld allocated node %s in job %ld",
+					 uid, nodename, j->job_id);
+				    authorized = 1;
+				    xfree(nodename);
+				    break;
+				}
+				xfree(nodename);
+			    }
 			}
 		}
 	}
