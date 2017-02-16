@@ -1,6 +1,11 @@
 This file describes changes in recent versions of SLURM. It primarily
 documents those changes that are of interest to users and admins.
 
+* Changes in SLURM 2.3.3-1.29chaos
+==================================
+ -- Fix pam_slurm module to work when NodeName and NodeHostname do not match
+    Address ServiceNow INC0021646
+
 * Changes in SLURM 2.3.3-1.28chaos
 ==================================
  -- Don't report a prolog error to the user's output/error file.
